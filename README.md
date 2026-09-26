@@ -36,3 +36,5 @@ mise run package-editor
 [Language reference](docs/0.0.1/kartui.md) · [Styles](docs/0.0.1/styles.md) · [Development](docs/development.md) · [Releases](docs/releases.md)
 
 Use KartUI in games with the [Karty CLI](https://github.com/karty-game/karty).
+
+[Contributing](CONTRIBUTING.md) · [MIT license](LICENSE.md)

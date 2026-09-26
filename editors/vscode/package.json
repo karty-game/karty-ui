@@ -6,7 +6,7 @@
   "publisher": "karty-local",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages", "Snippets"],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "contributes": {
     "languages": [{
       "id": "kartui",

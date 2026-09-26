@@ -17,6 +17,7 @@ try {
   for (const file of ['package.json', 'README.md', 'language-configuration.json', 'syntaxes', 'snippets']) {
     await cp(join(root, file), join(staging, 'extension', file), { recursive: true });
   }
+  await cp(resolve(root, '../../LICENSE.md'), join(staging, 'extension', 'LICENSE.md'));
   await writeFile(join(staging, '[Content_Types].xml'), `<?xml version="1.0" encoding="utf-8"?>\n${warning}
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="json" ContentType="application/json"/><Default Extension="md" ContentType="text/markdown"/><Default Extension="vsixmanifest" ContentType="text/xml"/></Types>`);
   await writeFile(join(staging, 'extension.vsixmanifest'), `<?xml version="1.0" encoding="utf-8"?>\n${warning}
