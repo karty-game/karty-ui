@@ -2,8 +2,8 @@
 
 The original `kefniark/karty` working tree remains intact. This is a clean source
 import into the existing destination repository; no Git history was rewritten.
-Existing uncommitted source changes were included. Nothing has been committed,
-pushed, tagged, published, or relicensed as part of this local migration.
+Existing uncommitted source changes were included. The assistant has not committed, pushed, tagged, published, or relicensed this
+extraction.
 
 | Source owner | Contents |
 | --- | --- |
@@ -22,7 +22,7 @@ There are no copied dependency trees. During this unpublished migration, ignored
 local `go.work` files connect sibling checkouts. Publish KartUI and Karty SDK v0.0.1 first,
 then Karty v0.0.1, and resolve their module checksums before enabling standalone
 CI/release builds. These versions are intended initial tags, not existing releases.
-The public CLI needs only public KartUI source; engine access is never required.
+The public CLI needs only public KartUI and SDK source; engine access is never required.
 
 Handwritten generators and templates are tracked: engine `core/internal/codegen`
 owns protocol bindings, while KartUI `codegen` owns project UI adapters. Generated
