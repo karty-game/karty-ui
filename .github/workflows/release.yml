@@ -20,7 +20,7 @@ jobs:
       - run: mise run install-editor
       - run: mise run check-editor
       - run: mise run package-editor
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
           args: release --clean
