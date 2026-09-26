@@ -13,7 +13,7 @@ jobs:
       - run: mise run install-editor
       - run: mise run check-editor
       - run: mise run package-editor
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kartui-editor
           path: dist/editor/*.vsix
