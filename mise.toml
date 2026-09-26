@@ -1,0 +1,29 @@
+[tools]
+golangci-lint = "2.13.2"
+go = "1.27.0"
+node = "24.21.0"
+
+[tasks.test]
+run = "go test ./..."
+
+[tasks.build]
+run = "go build ./..."
+
+[tasks.check-editor]
+run = "npm test --prefix editors/vscode"
+
+[tasks.install-editor]
+run = "npm ci --ignore-scripts --prefix editors/vscode"
+
+[tasks.package-editor]
+run = "node editors/vscode/package.mjs"
+
+[tasks.check]
+run = ["mise run test", "mise run build", "mise run check-editor"]
+
+[tasks.fmt]
+run = "gofmt -w compiler schema codegen"
+
+
+[tasks.lint]
+run = "golangci-lint run ./..."

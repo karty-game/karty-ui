@@ -1,0 +1,115 @@
+{
+  "name": "KartUI",
+  "scopeName": "source.kartui",
+  "patterns": [{ "include": "#named-setup" }, { "include": "#setup" }, { "include": "#component" }, { "include": "#layout" }, { "include": "#style" }, { "include": "#go" }],
+  "repository": {
+    "named-setup": {
+      "begin": "\\b(setup)\\s+([A-Z][A-Za-z0-9_]*)",
+      "beginCaptures": { "1": { "name": "keyword.declaration.kartui" }, "2": { "name": "entity.name.function.kartui" } },
+      "end": "(?<=\\})",
+      "patterns": [{ "include": "#parameters" }, { "include": "#expression" }]
+    },
+    "component": {
+      "begin": "\\b(kartui)\\s+([A-Z][A-Za-z0-9_]*)",
+      "beginCaptures": { "1": { "name": "keyword.declaration.kartui" }, "2": { "name": "entity.name.function.kartui" } },
+      "end": "(?<=\\})",
+      "patterns": [{ "include": "#parameters" }, { "include": "#body" }]
+    },
+    "layout": {
+      "begin": "\\b(layout)\\s+([A-Z][A-Za-z0-9_]*)",
+      "beginCaptures": { "1": { "name": "keyword.declaration.kartui" }, "2": { "name": "entity.name.type.kartui" } },
+      "end": "(?<=\\})",
+      "patterns": [{ "include": "#body" }]
+    },
+    "parameters": {
+      "name": "meta.embedded.parameters.go",
+      "begin": "\\(", "end": "\\)",
+      "patterns": [{ "include": "#parameters" }, { "include": "#go" }]
+    },
+    "body": {
+      "begin": "\\{", "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.section.block.begin.kartui" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.kartui" } },
+      "patterns": [{ "include": "#conditional" }, { "include": "#loop" }, { "include": "#comment" }, { "include": "#setup" }, { "include": "#tag" }, { "include": "#expression" }, { "include": "#entity" }]
+    },
+    "conditional": {
+      "begin": "\\b(if|else)\\b", "end": "(?<=\\})",
+      "beginCaptures": { "1": { "name": "keyword.control.go" } },
+      "patterns": [{ "include": "#body" }, { "include": "#go" }]
+    },
+    "loop": {
+      "begin": "\\b(for)\\b", "end": "(?<=\\})",
+      "beginCaptures": { "1": { "name": "keyword.control.go" } },
+      "patterns": [{ "include": "#body" }, { "include": "#go" }]
+    },
+    "setup": {
+      "begin": "\\b(setup)\\s*(\\{)", "end": "\\}",
+      "beginCaptures": { "1": { "name": "keyword.declaration.kartui" } },
+      "contentName": "meta.embedded.expression.go",
+      "patterns": [{ "include": "#go" }]
+    },
+    "style": {
+      "begin": "\\b(style)\\s*(\\{)", "end": "\\}",
+      "beginCaptures": { "1": { "name": "keyword.declaration.kartui" }, "2": { "name": "punctuation.section.block.begin.css" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.css" } },
+      "patterns": [{ "include": "#media" }, { "include": "#style-rule" }, { "include": "#css-comment" }]
+    },
+    "media": {
+      "begin": "(@media)\\s*(\\()\\s*(max-width)\\s*(:)\\s*([0-9]+)\\s*(\\))\\s*(\\{)", "end": "\\}",
+      "beginCaptures": { "1": { "name": "keyword.control.at-rule.media.css" }, "2": { "name": "punctuation.definition.media.begin.css" }, "3": { "name": "support.type.property-name.media.css" }, "4": { "name": "punctuation.separator.key-value.css" }, "5": { "name": "constant.numeric.css" }, "6": { "name": "punctuation.definition.media.end.css" }, "7": { "name": "punctuation.section.block.begin.css" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.css" } },
+      "patterns": [{ "include": "#style-rule" }, { "include": "#css-comment" }]
+    },
+    "style-rule": {
+      "begin": "([.]?[a-z][a-z0-9-]*(?::(?:hover|focus|pressed|disabled))?)\\s*(\\{)", "end": "\\}",
+      "beginCaptures": { "1": { "name": "entity.other.attribute-name.class.css" }, "2": { "name": "punctuation.section.block.begin.css" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.css" } },
+      "patterns": [
+        { "include": "#css-comment" },
+        { "name": "support.type.property-name.css", "match": "[a-z][a-z0-9-]*(?=\\s*:)" },
+        { "name": "variable.other.constant.css", "match": "\\btheme(?:[.][a-z][a-z0-9-]*)+\\b" },
+        { "name": "support.constant.property-value.css", "match": "\\b(?:row|column|start|center|end|left|right|absolute|body|display|mono|stretch|contain|cover|space-between|visible|scroll|linear|ease-out|ease-in-out|slide-from-(?:left|right|top|bottom)|slide-to-(?:left|right|top|bottom))\\b" },
+        { "name": "constant.other.color.rgb-value.css", "match": "#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?\\b" },
+        { "name": "constant.numeric.css", "match": "\\b[0-9]+\\b" }
+      ]
+    },
+    "css-comment": { "name": "comment.block.css", "begin": "/\\*", "end": "\\*/" },
+    "comment": { "name": "comment.block.html", "begin": "<!--", "end": "-->" },
+    "tag": {
+      "name": "meta.tag.kartui",
+      "begin": "(</?)([A-Za-z][A-Za-z0-9_-]*)",
+      "beginCaptures": { "1": { "name": "punctuation.definition.tag.begin.html" }, "2": { "name": "entity.name.tag.html" } },
+      "end": "/?>",
+      "endCaptures": { "0": { "name": "punctuation.definition.tag.end.html" } },
+      "patterns": [
+        { "include": "#expression" },
+        { "name": "entity.other.attribute-name.html", "match": "[A-Za-z][A-Za-z0-9_-]*(?=\\s*=)" },
+        { "name": "keyword.operator.assignment.html", "match": "=" },
+        { "name": "string.quoted.double.html", "begin": "\"", "end": "\"", "patterns": [{ "include": "#entity" }] }
+      ]
+    },
+    "entity": { "name": "constant.character.entity.html", "match": "&(?:[A-Za-z]+|#[0-9]+|#x[0-9A-Fa-f]+);" },
+    "expression": {
+      "name": "meta.embedded.expression.go",
+      "begin": "\\{", "end": "\\}",
+      "patterns": [{ "include": "#go" }]
+    },
+    "go": {
+      "patterns": [
+        { "name": "comment.line.double-slash.go", "begin": "//", "end": "$" },
+        { "name": "comment.block.go", "begin": "/\\*", "end": "\\*/" },
+        { "name": "string.quoted.double.go", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.go", "match": "\\\\." }] },
+        { "name": "string.quoted.single.go", "begin": "'", "end": "'", "patterns": [{ "name": "constant.character.escape.go", "match": "\\\\." }] },
+        { "name": "string.quoted.raw.go", "begin": "`", "end": "`" },
+        { "include": "#expression" },
+        { "include": "#parameters" },
+        { "name": "storage.type.go", "match": "\\b(?:string|bool|uint32|int|UIRow)\\b" },
+        { "name": "keyword.control.go", "match": "\\b(?:import|type|struct|interface|func|return|if|else|for|range|var)\\b" },
+        { "name": "constant.language.go", "match": "\\b(?:true|false|nil)\\b" },
+        { "name": "constant.numeric.go", "match": "\\b[0-9]+(?:\\.[0-9]+)?\\b" },
+        { "name": "keyword.operator.go", "match": "[+*/%!=<>:&|^-]+" },
+        { "name": "variable.other.go", "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b" }
+      ]
+    }
+  }
+}

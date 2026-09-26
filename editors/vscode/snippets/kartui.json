@@ -1,0 +1,102 @@
+{
+  "Component": {
+    "prefix": "kartui",
+    "body": ["type ${1:Menu}Props struct {", "    Title string", "}", "", "setup ${1}(props ${1}Props) {", "    $0", "}", "", "kartui ${1} {", "    <panel modal=\"true\" class=\"screen\">", "        <label>{ props.Title }</label>", "    </panel>", "}", "", "style {", "    .screen {", "        background: theme.colors.surface;", "        padding: theme.spacing.panel;", "    }", "}"],
+    "description": "Create a KartUI component"
+  },
+  "Style rule": {
+    "prefix": "style",
+    "body": ["style {", "    .${1:class} {", "        ${2:color}: theme.colors.${3:text};", "    }", "}"],
+    "description": "Add a scoped KartUI style block"
+  },
+  "Text alignment": {
+    "prefix": "text-align",
+    "body": ["text-align: ${1|left,center,right|};"],
+    "description": "Align label or control text"
+  },
+  "Font family": {
+    "prefix": "font-family",
+    "body": ["font-family: theme.typography.${1|body,title,mono|}-family;"],
+    "description": "Select a theme typography role"
+  },
+  "Layout": {
+    "prefix": "layout",
+    "body": ["layout ${1:WindowLayout} {", "    <panel modal=\"true\" class=\"layout-screen\">", "        <slot name=\"title\"/>", "        <panel class=\"layout-content\">", "            <slot/>", "        </panel>", "    </panel>", "}", "", "style {", "    .layout-screen { padding: theme.spacing.panel; gap: theme.spacing.gap; }", "    .layout-content { padding: theme.spacing.gap; gap: theme.spacing.gap; }", "}"],
+    "description": "Create a reusable KartUI layout with named and default slots"
+  },
+  "Layout view": {
+    "prefix": "layout-view",
+    "body": ["<${1:WindowLayout}>", "    <fragment slot=\"title\"><label>${2:Title}</label></fragment>", "    $0", "</${1}>"] ,
+    "description": "Project view content into a KartUI layout"
+  },
+  "Horizontal panel": {
+    "prefix": "panel-row",
+    "body": ["<panel class=\"${1:row}\">", "    $0", "</panel>", "", "style {", "    .${1} {", "        flex-direction: row;", "        align-items: ${2:center};", "        justify-content: ${3:space-between};", "        gap: theme.spacing.gap;", "    }", "}"],
+    "description": "Create a horizontal panel using bounded layout properties"
+  },
+  "Scrollable panel": {
+    "prefix": "panel-scroll",
+    "body": ["<panel class=\"${1:scrollable}\">", "    $0", "</panel>", "", "style {", "    .${1} {", "        max-height: ${2:240};", "        overflow: scroll;", "        align-items: stretch;", "    }", "}"],
+    "description": "Create a bounded nested scrolling panel"
+  },
+  "Conditional markup": {
+    "prefix": "if-ui",
+    "body": ["if ${1:condition} {", "    ${2:<label>Visible</label>}", "} else {", "    $0", "}"],
+    "description": "Render one of two retained KartUI branches"
+  },
+  "View transition": {
+    "prefix": "transition-view",
+    "body": ["transition-duration: ${1:180};"],
+    "description": "Fade a root view in using host draw-time interpolation"
+  },
+  "Transition timing": {
+    "prefix": "transition-timing",
+    "body": ["transition-duration: ${1:180};", "transition-delay: ${2:0};", "transition-easing: ${3|ease-out,ease-in-out,linear|};"],
+    "description": "Configure bounded host draw-time transition timing"
+  },
+  "Overlay panel": {
+    "prefix": "panel-overlay",
+    "body": ["<panel class=\"${1:overlay}\">", "    $0", "</panel>", "", "style {", "    .${1} { position: absolute; top: ${2:16}; right: ${3:16}; }", "}"],
+    "description": "Position a panel over its parent's content without consuming flow space"
+  },
+  "Semantic back": {
+    "prefix": "on-back",
+    "body": ["onBack={ ${1:props.Back} }"],
+    "description": "Route Escape and the standard controller Back button to this view callback"
+  },
+  "Sliding panel": {
+    "prefix": "transition-panel",
+    "body": ["transition-duration: ${1:180};", "transition-enter: slide-from-${2:right};", "transition-exit: slide-to-${3:left};"],
+    "description": "Slide a nested panel in and out using host presentation time"
+  },
+  "Responsive styles": {
+    "prefix": "media-phone",
+    "body": ["@media (max-width: ${1:480}) {", "    .${2:screen} {", "        padding: ${3:8};", "    }", "    $0", "}"],
+    "description": "Override KartUI styles for a bounded logical viewport width"
+  },
+  "Nine-slice background": {
+    "prefix": "nine-slice",
+    "body": ["background-image: theme.images.${1:panel};"],
+    "description": "Use a nine-slice image declared by theme.toml"
+  },
+  "Fitted image": {
+    "prefix": "image-fit",
+    "body": ["image: theme.images.${1:art};", "image-fit: ${2|contain,cover,stretch|};", "tint: ${3:#ffffffff};"],
+    "description": "Fit and optionally tint a foreground theme image"
+  },
+  "Button icon": {
+    "prefix": "button-icon",
+    "body": ["icon: theme.images.${1:icon};", "icon-position: ${2|start,end|};", "icon-size: ${3:20};", "icon-gap: ${4:8};", "tint: ${5:#ffffffff};"],
+    "description": "Decorate a button with a typed theme image"
+  },
+  "Button": {
+    "prefix": "button",
+    "body": ["<button enabled={ ${1:Enabled} } onClick={ ${2:OnClick} }>${3:Label}</button>"],
+    "description": "Button using declared bool and func() parameters"
+  },
+  "Bound label": {
+    "prefix": "label",
+    "body": ["<label>{ ${1:Title} }</label>"],
+    "description": "Display a declared string parameter"
+  }
+}

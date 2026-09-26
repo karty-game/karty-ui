@@ -1,0 +1,27 @@
+{
+  "name": "kartui",
+  "displayName": "KartUI",
+  "description": "Syntax highlighting and snippets for Karty UI components.",
+  "version": "0.1.16",
+  "publisher": "karty-local",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Snippets"],
+  "license": "UNLICENSED",
+  "contributes": {
+    "languages": [{
+      "id": "kartui",
+      "aliases": ["KartUI", "kartui"],
+      "extensions": [".ui", ".ui.tmpl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "kartui",
+      "scopeName": "source.kartui",
+      "path": "./syntaxes/kartui.tmLanguage.json",
+      "embeddedLanguages": { "meta.embedded.expression.go": "go", "meta.embedded.parameters.go": "go" }
+    }],
+    "snippets": [{ "language": "kartui", "path": "./snippets/kartui.json" }]
+  },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "devDependencies": { "vscode-textmate": "9.3.2", "vscode-oniguruma": "2.0.1" }
+}

@@ -1,0 +1,11 @@
+{{.GeneratedComment}}package engine
+
+// Typed asset references generated from karty.toml. Only the declared name
+// crosses the cartridge boundary; source paths remain build-time details.
+{{if .Textures }}
+const (
+{{- range .Textures }}
+	{{ .Identifier }} {{ $.AssetType }} = {{ printf "%q" .Name }}
+{{- end }}
+)
+{{- end }}

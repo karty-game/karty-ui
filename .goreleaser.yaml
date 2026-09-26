@@ -1,0 +1,21 @@
+version: 2
+project_name: kartui
+dist: dist/goreleaser
+
+# The Go packages are consumed through module tags; the release artifact is VSIX.
+builds:
+  - skip: true
+release:
+  github:
+    owner: karty-game
+    name: karty-ui
+  name_template: 'KartUI {{ .Tag }}'
+  header: |
+    KartUI language tools and VS Code extension.
+    Install the attached VSIX in VS Code, or use the tagged Go compiler module.
+  extra_files:
+    - glob: dist/editor/*.vsix
+source:
+  enabled: false
+changelog:
+  disable: true
