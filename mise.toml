@@ -1,7 +1,7 @@
 [tools]
-golangci-lint = "2.13.2"
-go = "1.27.0"
-node = "24.21.0"
+golangci-lint = "2.14.0"
+go = "1.27.1"
+node = "26.10.0"
 
 [tasks.test]
 run = "go test ./..."
