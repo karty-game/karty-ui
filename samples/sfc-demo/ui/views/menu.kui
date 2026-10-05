@@ -1,0 +1,28 @@
+<script setup lang="go">
+import "strings"
+
+type MenuProps struct {
+	Title string
+	Select func()
+}
+
+func setup(args MenuProps) {
+	choose := func() {
+		_ = strings.TrimSpace(args.Title)
+		args.Select()
+	}
+}
+</script>
+
+<template>
+    <MainMenu>
+        <fragment slot="title"><label class="title">{ args.Title }</label></fragment>
+        <button class="primary" onClick={ choose }>Play</button>
+    </MainMenu>
+</template>
+
+<style>
+.title { color: theme.colors.accent; font-size: theme.typography.title; }
+.primary { background: theme.colors.primary; color: theme.colors.text; }
+.primary:hover { background: theme.colors.primary-hover; }
+</style>

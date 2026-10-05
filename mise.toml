@@ -3,6 +3,11 @@ golangci-lint = "2.14.0"
 go = "1.27.1"
 node = "26.10.0"
 
+[shell_alias]
+fmt = "mise run fmt"
+lint = "mise run lint"
+test = "mise run test"
+
 [tasks.test]
 run = "go test ./..."
 

@@ -40,7 +40,7 @@ and retained children receive fresh props when their parent invalidates.
 
 | Element | Attributes | Notes |
 | --- | --- | --- |
-| `panel` | `class`; root: `modal="true"`, `onBack={ func() }` | Root must be a panel; nested panels create layout parents. |
+| `panel` | `class`; root: `modal="true|false"`, modal `onBack={ func() }` | Root must be a panel; nested panels create layout parents. |
 | `label` | `class` | Static text is its body. |
 | `image` | `class` | Style `image` chooses a typed theme image. |
 | `button` | `class`, `enabled={ bool }`, `onClick={ func() }` | Leaf control. |
@@ -83,6 +83,17 @@ Other syntax is not supported by SDK 0.11.
 no Go setup/runtime asset name. Direct children fill `<slot/>`; named
 `<fragment slot="...">` fills named slots. `onBack={ fn }` is the only layout
 invocation attribute and assigns its semantic Back callback. Escape and gamepad
-East/Back activate it. Modal roots consume game input; non-modal roots cannot
-contain interactive descendants. Touch/focus/scroll are host behavior; callbacks
-are the client-visible action boundary.
+East/Back activate it. Modal roots consume game input. In candidate SDK 0.0.8
+with UI schema 9, a `modal="false"` root can contain buttons and lists while
+keyboard and pointer events continue to the game. This supports movement keys
+with visible touch controls. Handle scene pointer actions accordingly, because
+a button click also produces the ordinary game pointer release. Nonmodal roots
+cannot declare `onBack`; handle Escape in the game when needed. Schemas 1–8
+retain their noninteractive HUD restriction. Touch/focus/scroll are host
+behavior; callbacks are the client-visible action boundary.
+
+Interactive controls may also live in child components. Project compilation
+selects schema 9 for a nonmodal component whose descendants contain buttons or
+lists, including controls reached through nested, conditional, or keyed child
+composition. The root schema governs interaction for its whole mounted tree;
+modal components and noninteractive HUDs keep their existing schema requirements.

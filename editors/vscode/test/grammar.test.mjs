@@ -42,6 +42,28 @@ test('actual demo declaration, parameters, markup and bindings', async () => {
   has(tokens, 'choose', 'meta.embedded.expression.go');
 });
 
+test('SFC Go script, template and style blocks use embedded language scopes', () => {
+  const tokens = tokenize('<script setup lang="go">\nfunc setup(args MenuProps) {\nchoose := func() { args.Select() }\n}\n</script>\n' +
+    '<template><panel><button onClick={ choose }>Play</button></panel></template>\n' +
+    '<style>.menu { color: theme.colors.text; }</style>');
+  has(tokens, 'func', 'meta.embedded.script.go');
+  has(tokens, 'setup', 'meta.embedded.script.go');
+  has(tokens, 'MenuProps', 'meta.embedded.script.go');
+  has(tokens, 'panel', 'entity.name.tag.html');
+  has(tokens, 'onClick', 'entity.other.attribute-name.html');
+  has(tokens, '.menu', 'entity.other.attribute-name.class.css');
+});
+
+test('shared SFC compiler sample stays highlighted in all three blocks', async () => {
+  const source = await readFile(new URL('../../../samples/sfc-demo/ui/views/menu.kui', import.meta.url), 'utf8');
+  const tokens = tokenize(source);
+  has(tokens, 'func', 'meta.embedded.script.go');
+  has(tokens, 'MenuProps', 'meta.embedded.script.go');
+  has(tokens, 'MainMenu', 'entity.name.tag.html');
+  has(tokens, 'onClick', 'entity.other.attribute-name.html');
+  has(tokens, '.primary:hover', 'entity.other.attribute-name.class.css');
+});
+
 test('nested Go braces, comments, escaped strings and raw strings do not swallow tags', () => {
   const tokens = tokenize('kartui Menu(Click func()) {\n<panel modal="true">\n' +
     '<button onClick={ func() { /* } > */ if true { Click() } } }>Click</button>\n' +
@@ -62,6 +84,7 @@ test('manifest and snippet contributions remain declarative', async () => {
   assert.equal(manifest.main, undefined);
   assert.equal(manifest.browser, undefined);
   assert.equal(manifest.contributes.languages[0].id, 'kartui');
+  assert.deepEqual(manifest.contributes.languages[0].extensions, ['.kui', '.kui.tmpl']);
   const snippets = JSON.parse(await readFile(new URL('../snippets/kartui.json', import.meta.url)));
   assert.ok(snippets.Component.body.some(line => line.startsWith('kartui ')));
   JSON.parse(await readFile(new URL('../language-configuration.json', import.meta.url)));

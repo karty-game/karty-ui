@@ -14,7 +14,7 @@ const warning = `<!-- GENERATED FILE — DO NOT EDIT.
      Source: editors/vscode/package.mjs. Regenerate with: mise run package-editor. -->`;
 try {
   await mkdir(join(staging, 'extension'));
-  for (const file of ['package.json', 'README.md', 'language-configuration.json', 'syntaxes', 'snippets']) {
+  for (const file of ['package.json', 'README.md', 'language-configuration.json', 'syntaxes', 'snippets', 'icons', 'fileicons']) {
     await cp(join(root, file), join(staging, 'extension', file), { recursive: true });
   }
   await cp(resolve(root, '../../LICENSE.md'), join(staging, 'extension', 'LICENSE.md'));

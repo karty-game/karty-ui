@@ -158,7 +158,8 @@ const (
 var ErrTemplate = errors.New("invalid UI template")
 
 // Template version 1 is a vertical panel of named labels, buttons, and lists.
-// A modal panel captures game input. A nonmodal HUD must contain only labels.
+// A modal panel captures game input. Schema 9 also permits actionable nonmodal
+// HUD controls; older nonmodal templates retain their noninteractive contract.
 type Template struct {
 	Version            uint32    `json:"version"`
 	Modal              bool      `json:"modal"`
@@ -353,7 +354,7 @@ func (state *validationState) accept(element Element, version uint32, modal, com
 		state.panels[element.ID] = depth
 	}
 
-	return validElementKind(element, modal, composition && version >= SchemaComposition) &&
+	return validElementKind(element, modal, composition && version >= SchemaComposition, version) &&
 		(element.Kind != "image" || version >= SchemaVisualHierarchy) &&
 		validStyle(element.Style, element.Kind, version) && validResponsiveStyle(element.ResponsiveStyle, element.Kind, version) &&
 		(version >= SchemaStyle || element.Style.Set|element.Style.Set2 == 0)
@@ -625,7 +626,7 @@ func validImage(image Image) bool {
 	}
 }
 
-func validElementKind(element Element, modal, slots bool) bool {
+func validElementKind(element Element, modal, slots bool, version uint32) bool {
 	switch element.Kind {
 	case "panel":
 		return slots && element.Action == 0 && element.Text == ""
@@ -636,7 +637,7 @@ func validElementKind(element Element, modal, slots bool) bool {
 	case "image":
 		return slots && element.Action == 0 && element.Text == "" && element.Style.Set&StyleContentImage != 0
 	case "button", "list":
-		return element.Action != 0 && modal
+		return element.Action != 0 && (modal || version >= SchemaInteractionPolish)
 	default:
 		return false
 	}

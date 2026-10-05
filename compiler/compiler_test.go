@@ -28,6 +28,76 @@ func TestCompile(t *testing.T) {
 	}
 }
 
+func TestCompileSingleFileComponentUsesFileName(t *testing.T) {
+	t.Parallel()
+
+	source := `<script setup lang="go">
+import "strings"
+
+type MenuProps struct { Title string; Select func() }
+
+func setup(args MenuProps) {
+	choose := func() { _ = strings.TrimSpace(args.Title); args.Select() }
+}
+</script>
+
+<template>
+<panel modal="true"><label class="title">{ args.Title }</label><button onClick={ choose }>Play</button></panel>
+</template>
+
+<style>
+.title { color: theme.colors.text; }
+</style>`
+
+	component, err := Compile("ui/views/menu.kui", []byte(source))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if component.Name != "Menu" || !component.Local || len(component.Parameters) != 1 ||
+		component.Parameters[0] != (Parameter{Name: "args", Type: "MenuProps"}) {
+		t.Fatalf("component identity and parameters = %+v", component)
+	}
+
+	if !strings.Contains(component.Setup, "choose := func()") || !strings.Contains(component.Preamble, `import "strings"`) ||
+		component.Bindings[0].Text != "args.Title" || component.Bindings[1].Click != "choose" {
+		t.Fatalf("SFC lowering lost Go or template content: %+v", component)
+	}
+}
+
+func TestCompileSFCExampleProject(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join("..", "samples", "sfc-demo")
+
+	components, err := LoadProjectWithTheme(root,
+		[]Source{{Name: "ui.menu", Source: "ui/views/menu.kui"}},
+		[]LayoutSource{{Source: "ui/layouts/main-menu.kui"}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(components) != 1 || components[0].Name != "Menu" || len(components[0].Parameters) != 1 ||
+		components[0].Parameters[0].Type != "MenuProps" ||
+		components[0].Bindings[2].Click != "choose" {
+		t.Fatalf("compiled SFC example lost the derived API or handler")
+	}
+}
+
+func TestParseSingleFileLayoutUsesFileName(t *testing.T) {
+	t.Parallel()
+
+	layout, err := parseLayout("ui/layouts/main-menu.kui", []byte(`<template><panel modal="true"><slot/></panel></template>
+<style>.screen { padding: 8; }</style>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if layout.Name != "MainMenu" || !strings.Contains(layout.Style, ".screen") {
+		t.Fatalf("SFC layout = %+v", layout)
+	}
+}
+
 func TestRejectUnsupportedSource(t *testing.T) {
 	t.Parallel()
 
@@ -172,6 +242,11 @@ func TestLevelStaticAndDynamic(t *testing.T) {
 	t.Parallel()
 
 	if _, err := DecodeSource("hud.ui", []byte(`kartui Hud() { <panel><label>My level</label></panel> }`)); err != nil {
+		t.Fatal(err)
+	}
+
+	kuiSource := []byte(`<template><panel><label>My level</label></panel></template>`)
+	if _, err := DecodeSource("hud.kui", kuiSource); err != nil {
 		t.Fatal(err)
 	}
 

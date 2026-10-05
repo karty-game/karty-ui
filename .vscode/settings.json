@@ -8,8 +8,8 @@
   "mise.configureExtensionsIncludeGlobalTools": true,
   "mise.configureExtensionsUseSymLinks": true,
   "files.associations": {
-    "*.ui": "kartui",
-    "*.ui.tmpl": "kartui"
+    "*.kui": "kartui",
+    "*.kui.tmpl": "kartui"
   },
   "files.exclude": {
     ".direnv/**": true

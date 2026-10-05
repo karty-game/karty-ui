@@ -190,6 +190,7 @@ func resolveChildren(components []Component) error {
 	}
 
 	visiting, done := map[string]bool{}, map[string]bool{}
+	requiresInteraction := make([]bool, len(components))
 
 	var visit func(int) error
 
@@ -204,6 +205,10 @@ func resolveChildren(components []Component) error {
 		}
 
 		visiting[component.Name] = true
+		for _, element := range component.Template.Elements {
+			requiresInteraction[index] = requiresInteraction[index] || element.Action != 0
+		}
+
 		for _, binding := range component.Bindings {
 			if binding.Child == "" {
 				continue
@@ -224,6 +229,13 @@ func resolveChildren(components []Component) error {
 			if err := visit(child); err != nil {
 				return err
 			}
+
+			requiresInteraction[index] = requiresInteraction[index] || requiresInteraction[child]
+		}
+
+		// The host uses the root schema to permit actions throughout its tree.
+		if !component.Template.Modal && requiresInteraction[index] {
+			component.Template.Version = max(component.Template.Version, ui.SchemaInteractionPolish)
 		}
 
 		visiting[component.Name] = false

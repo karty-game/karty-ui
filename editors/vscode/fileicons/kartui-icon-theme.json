@@ -1,0 +1,14 @@
+{
+  "iconDefinitions": {
+    "_kui": {
+      "iconPath": "../icons/kui-file.svg"
+    }
+  },
+  "fileExtensions": {
+    "kui": "_kui",
+    "kui.tmpl": "_kui"
+  },
+  "languageIds": {
+    "kartui": "_kui"
+  }
+}

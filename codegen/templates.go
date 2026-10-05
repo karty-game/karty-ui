@@ -13,3 +13,6 @@ var uiComposedClientSource string
 
 //go:embed templates/assets.go.tmpl
 var assetsSourceTemplate string
+
+//go:embed templates/project-config.go.tmpl
+var projectConfigSource string

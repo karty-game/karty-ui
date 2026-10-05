@@ -5,7 +5,7 @@
 KartUI combines markup, Go expressions, reusable components, and styles to
 make game menus and HUDs easy to author.
 
-A `.ui` file declares a component with typed inputs and Go callbacks:
+A `.kui` file declares a component with typed inputs and Go callbacks:
 
 ```go
 kartui MainMenu(Title string, Play func()) {
@@ -23,6 +23,12 @@ Components can also include setup logic, reusable layouts, and styles.
 - **Schema** for bounded UI definitions shared with the runtime.
 - **Go adapters** for typed bindings and callbacks.
 - **VS Code extension** for highlighting and snippets.
+
+The compiler also accepts an experimental single-file component form with
+`<script setup lang="go">`, `<template>`, and `<style>` blocks. A file named
+`menu.kui` produces the component name `Menu`; see [the SFC sample](samples/sfc-demo/README.md).
+KartUI's compiler and editor support `.kui`; the CLI's project discovery still
+uses `.ui` and needs its own migration before game projects can use `.kui`.
 
 This public repository builds independently of the private Karty Engine.
 Rendering and platform input belong to the engine.

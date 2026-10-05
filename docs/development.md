@@ -15,6 +15,11 @@ mise run package-editor
 - `compiler`: markup, composition, styles, themes and layout compilation.
 - `schema`: bounded serialized UI definitions shared with host implementations.
 - `codegen`: project-specific Go emission for the Karty adapter.
+  `ProjectConfigFile` emits `.karty/config/project.go` from CLI-validated
+  resolution and camera defaults using the tracked
+  `codegen/templates/project-config.go.tmpl`. The CLI owns manifest parsing,
+  bounds and degrees-to-radians conversion. Resolution constants are uint32;
+  camera projection constants are float32. No engine source is required.
 - `editors/vscode`: grammar, snippets, standalone fixtures and VSIX packaging.
 
 Start with [KartUI](0.0.1/kartui.md), [styles](0.0.1/styles.md)

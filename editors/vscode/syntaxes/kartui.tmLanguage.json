@@ -1,8 +1,29 @@
 {
   "name": "KartUI",
   "scopeName": "source.kartui",
-  "patterns": [{ "include": "#named-setup" }, { "include": "#setup" }, { "include": "#component" }, { "include": "#layout" }, { "include": "#style" }, { "include": "#go" }],
+  "patterns": [{ "include": "#sfc-script" }, { "include": "#sfc-template" }, { "include": "#sfc-style" }, { "include": "#named-setup" }, { "include": "#setup" }, { "include": "#component" }, { "include": "#layout" }, { "include": "#style" }, { "include": "#go" }],
   "repository": {
+    "sfc-script": {
+      "begin": "(<script\\s+setup\\s+lang=\\\"go\\\">)", "end": "</script>",
+      "beginCaptures": { "1": { "name": "punctuation.section.embedded.begin.kartui" } },
+      "endCaptures": { "0": { "name": "punctuation.section.embedded.end.kartui" } },
+      "contentName": "meta.embedded.script.go",
+      "patterns": [{ "include": "#go" }]
+    },
+    "sfc-template": {
+      "begin": "<template>", "end": "</template>",
+      "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.kartui" } },
+      "endCaptures": { "0": { "name": "punctuation.section.embedded.end.kartui" } },
+      "contentName": "meta.template.kartui",
+      "patterns": [{ "include": "#conditional" }, { "include": "#loop" }, { "include": "#comment" }, { "include": "#tag" }, { "include": "#expression" }, { "include": "#entity" }]
+    },
+    "sfc-style": {
+      "begin": "<style>", "end": "</style>",
+      "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.kartui" } },
+      "endCaptures": { "0": { "name": "punctuation.section.embedded.end.kartui" } },
+      "contentName": "meta.embedded.style.css",
+      "patterns": [{ "include": "#media" }, { "include": "#style-rule" }, { "include": "#css-comment" }]
+    },
     "named-setup": {
       "begin": "\\b(setup)\\s+([A-Z][A-Za-z0-9_]*)",
       "beginCaptures": { "1": { "name": "keyword.declaration.kartui" }, "2": { "name": "entity.name.function.kartui" } },

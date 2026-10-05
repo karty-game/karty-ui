@@ -36,7 +36,21 @@ func parseLayout(source string, data []byte) (Layout, error) {
 		return Layout{}, fmt.Errorf("%s: layout source too large: %w", source, ui.ErrTemplate)
 	}
 
-	declaration, style, err := splitStyle(strings.TrimSpace(string(data)))
+	text := strings.TrimSpace(string(data))
+	if single, ok, err := parseSingleFileComponent(source, data); ok {
+		if err != nil {
+			return Layout{}, err
+		}
+
+		text, err = single.layoutSource(source)
+		if err != nil {
+			return Layout{}, err
+		}
+	} else if err != nil {
+		return Layout{}, err
+	}
+
+	declaration, style, err := splitStyle(text)
 	if err != nil {
 		return Layout{}, fmt.Errorf("%s: %w", source, err)
 	}

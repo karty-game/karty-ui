@@ -1,0 +1,13 @@
+<template>
+    <panel modal="true" class="screen">
+        <panel class="content">
+            <slot name="title"><label>Menu</label></slot>
+            <slot/>
+        </panel>
+    </panel>
+</template>
+
+<style>
+.screen { background: theme.colors.surface; padding: 16; }
+.content { gap: 8; align-items: stretch; }
+</style>

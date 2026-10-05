@@ -63,7 +63,7 @@ func LoadProjectWithTheme(
 	}
 
 	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Source, ".ui") {
+		if !strings.HasSuffix(entry.Source, ".ui") && !strings.HasSuffix(entry.Source, ".kui") {
 			continue
 		}
 

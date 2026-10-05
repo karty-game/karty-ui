@@ -69,6 +69,20 @@ func compileWithLayouts(source string, data []byte, theme Theme, layouts map[str
 	}
 
 	text := strings.TrimSpace(string(data))
+	if single, ok, err := parseSingleFileComponent(source, data); ok {
+		if err != nil {
+			return result, err
+		}
+
+		text, err = single.componentSource(source)
+		if err != nil {
+			return result, err
+		}
+
+		text = strings.TrimSpace(text)
+	} else if err != nil {
+		return result, err
+	}
 
 	text, styleText, err := splitStyle(text)
 	if err != nil {
@@ -175,6 +189,7 @@ func compileWithLayouts(source string, data []byte, theme Theme, layouts map[str
 		return result, fmt.Errorf("%s: %w", source, err)
 	}
 
+	result.raiseInteractiveHUDSchema()
 	result.raiseLayoutSchema(len(layoutStyles) > 0)
 
 	if err := result.Template.ValidateComposition(); err != nil {
@@ -185,6 +200,20 @@ func compileWithLayouts(source string, data []byte, theme Theme, layouts map[str
 	}
 
 	return result, nil
+}
+
+func (component *Component) raiseInteractiveHUDSchema() {
+	if component.Template.Modal {
+		return
+	}
+
+	for _, element := range component.Template.Elements {
+		if element.Kind == "button" || element.Kind == "list" {
+			component.Template.Version = max(component.Template.Version, ui.SchemaInteractionPolish)
+
+			return
+		}
+	}
 }
 
 func (component *Component) raiseLayoutSchema(usedLayout bool) {
@@ -776,7 +805,7 @@ func DecodeSource(source string, data []byte) (ui.Template, error) {
 }
 
 func DecodeSourceWithTheme(source string, data []byte, theme Theme) (ui.Template, error) {
-	if !strings.HasSuffix(source, ".ui") {
+	if !strings.HasSuffix(source, ".ui") && !strings.HasSuffix(source, ".kui") {
 		return ui.Decode(data)
 	}
 
