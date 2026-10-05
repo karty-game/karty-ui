@@ -5,28 +5,43 @@
 KartUI combines markup, Go expressions, reusable components, and styles to
 make game menus and HUDs easy to author.
 
-A `.kui` file declares a component with typed inputs and Go callbacks:
+A `main-menu.kui` file declares a component with typed inputs and Go callbacks:
 
-```go
-kartui MainMenu(Title string, Play func()) {
-    <panel modal="true">
-        <label>{ Title }</label>
-        <button onClick={ Play }>Play</button>
-    </panel>
+```html
+<script setup lang="go">
+type MainMenuProps struct {
+    Title string
+    Play func()
 }
+
+func setup(props MainMenuProps) {}
+</script>
+
+<template>
+    <panel modal="true">
+        <label class="title">{ props.Title }</label>
+        <button onClick={ props.Play }>Play</button>
+    </panel>
+</template>
+
+<style>
+.title { font-size: theme.typography.title; }
+</style>
 ```
 
-`Title` supplies the label text; `Play` runs when the button is activated.
-Components can also include setup logic, reusable layouts, and styles.
+The file name supplies the component name `MainMenu`; the Go setup parameters
+define its inputs. `props.Title` supplies the label text, and `props.Play` runs
+when the button is activated. Setup logic runs once per mounted instance;
+the script and style blocks are optional.
 
 - **Compiler** for components, layouts, themes, and styles.
 - **Schema** for bounded UI definitions shared with the runtime.
 - **Go adapters** for typed bindings and callbacks.
 - **VS Code extension** for highlighting and snippets.
 
-The compiler also accepts an experimental single-file component form with
-`<script setup lang="go">`, `<template>`, and `<style>` blocks. A file named
-`menu.kui` produces the component name `Menu`; see [the SFC sample](samples/sfc-demo/README.md).
+This single-file component format is experimental. The compiler also supports
+the legacy `kartui Name(...) { ... }` form. See [the SFC sample](samples/sfc-demo/README.md)
+for a component with setup logic, a reusable layout, and styles.
 KartUI's compiler and editor support `.kui`; the CLI's project discovery still
 uses `.ui` and needs its own migration before game projects can use `.kui`.
 
