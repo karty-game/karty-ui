@@ -30,6 +30,8 @@ const (
 	SchemaControlTransition   uint32 = 7
 	SchemaVisualHierarchy     uint32 = 8
 	SchemaInteractionPolish   uint32 = 9
+	SchemaWidgets             uint32 = 10
+	SchemaSizing              uint32 = 11
 	MinResponsiveWidth               = 240
 	MaxResponsiveWidth               = 1024
 )
@@ -85,6 +87,8 @@ const (
 	Style2IconSize
 	Style2IconPosition
 	Style2IconGap
+	Style2Width
+	Style2Height
 )
 
 const (
@@ -171,13 +175,18 @@ type Template struct {
 }
 
 type Element struct {
-	ID     uint32 `json:"id"`
-	Parent uint32 `json:"parent,omitempty"`
-	Name   string `json:"name"`
-	Kind   string `json:"kind"`
-	Text   string `json:"text"`
-	Action uint32 `json:"action,omitempty"`
-	Style  Style  `json:"style,omitzero"`
+	ID          uint32 `json:"id"`
+	Parent      uint32 `json:"parent,omitempty"`
+	Name        string `json:"name"`
+	Kind        string `json:"kind"`
+	Text        string `json:"text"`
+	Action      uint32 `json:"action,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Min         int32  `json:"min,omitempty"`
+	Max         int32  `json:"max,omitempty"`
+	Placeholder string `json:"placeholder,omitempty"`
+	Tooltip     string `json:"tooltip,omitempty"`
+	Style       Style  `json:"style,omitzero"`
 	// ResponsiveStyle is the fully resolved style selected at or below the
 	// template's ResponsiveMaxWidth. A zero Set inherits Style unchanged.
 	ResponsiveStyle Style `json:"responsiveStyle,omitzero"`
@@ -235,6 +244,8 @@ type Style struct {
 	IconSize                uint16 `json:"iconSize,omitempty"`
 	IconPosition            uint8  `json:"iconPosition,omitempty"`
 	IconGap                 uint16 `json:"iconGap,omitempty"`
+	Width                   Length `json:"width,omitzero"`
+	Height                  Length `json:"height,omitzero"`
 }
 
 // Image is a compiler-resolved nine-slice reference. Game images use a logical
@@ -293,6 +304,17 @@ func (template Template) ValidateComposition() error {
 	return template.validate(true)
 }
 
+// ValidateStyle checks a resolved style against a widget's complete current
+// presentation contract. Authoring compilers may use this to omit invalid
+// declarations; serialized templates still undergo strict versioned validation.
+func ValidateStyle(style Style, kind string) error {
+	if !validStyle(style, kind, SchemaSizing) {
+		return ErrTemplate
+	}
+
+	return nil
+}
+
 func (template Template) validate(composition bool) error {
 	if !validVersion(template.Version, composition) || len(template.Elements) == 0 || len(template.Elements) > MaxElements {
 		return ErrTemplate
@@ -312,6 +334,7 @@ func (template Template) validate(composition bool) error {
 		ids:    make(map[uint32]bool, len(template.Elements)),
 		names:  make(map[string]bool, len(template.Elements)),
 		panels: make(map[uint32]uint32),
+		kinds:  make(map[uint32]string),
 	}
 	for _, element := range template.Elements {
 		if !state.accept(element, template.Version, template.Modal, composition) {
@@ -319,15 +342,17 @@ func (template Template) validate(composition bool) error {
 		}
 	}
 
-	return nil
+	return template.validateTabs()
 }
 
 type validationState struct {
 	ids    map[uint32]bool
 	names  map[string]bool
 	panels map[uint32]uint32
+	kinds  map[uint32]string
 }
 
+//nolint:cyclop // Identity, ancestry, version and presentation bounds are checked before accepting an element.
 func (state *validationState) accept(element Element, version uint32, modal, composition bool) bool {
 	if element.ID == 0 || state.ids[element.ID] || state.names[element.Name] || !validName(element.Name) ||
 		len(element.Text) > MaxTextBytes || !utf8.ValidString(element.Text) {
@@ -346,7 +371,7 @@ func (state *validationState) accept(element Element, version uint32, modal, com
 		depth = parentDepth + 1
 	}
 
-	if element.Kind == "panel" {
+	if isContainerKind(element.Kind) {
 		if version < SchemaLayout {
 			return false
 		}
@@ -354,14 +379,21 @@ func (state *validationState) accept(element Element, version uint32, modal, com
 		state.panels[element.ID] = depth
 	}
 
-	return validElementKind(element, modal, composition && version >= SchemaComposition, version) &&
+	parentKind := state.kinds[element.Parent]
+
+	state.kinds[element.ID] = element.Kind
+	if (element.Kind == "tab") != (parentKind == "tabs") {
+		return false
+	}
+
+	return validWidgetFields(element, version) && validElementKind(element, modal, composition && version >= SchemaComposition, version) &&
 		(element.Kind != "image" || version >= SchemaVisualHierarchy) &&
 		validStyle(element.Style, element.Kind, version) && validResponsiveStyle(element.ResponsiveStyle, element.Kind, version) &&
 		(version >= SchemaStyle || element.Style.Set|element.Style.Set2 == 0)
 }
 
 func validVersion(version uint32, composition bool) bool {
-	return version == 1 || (composition && version >= SchemaComposition && version <= SchemaInteractionPolish)
+	return version == 1 || (composition && version >= SchemaComposition && version <= SchemaSizing)
 }
 
 func validResponsive(template Template) bool {
@@ -383,8 +415,18 @@ func validResponsiveStyle(style Style, kind string, version uint32) bool {
 	return style.Set|style.Set2 == 0 || (version >= SchemaResponsive && validStyle(style, kind, version))
 }
 
-//nolint:cyclop,funlen,gocyclo,gocognit // Explicit per-widget allowlists keep the serialized schema auditable.
+//nolint:cyclop,funlen,gocyclo,gocognit,maintidx // Explicit per-widget allowlists keep the serialized schema auditable.
 func validStyle(style Style, kind string, version uint32) bool {
+	if !validWidgetStyle(kind, style) {
+		return false
+	}
+
+	if !validSizing(style, kind, version) {
+		return false
+	}
+
+	kind = widgetStyleKind(kind)
+
 	const all = StyleBackground | StyleBackgroundHover | StyleBackgroundPressed | StyleColor |
 		StylePadding | StyleGap | StyleFontSize | StyleMinHeight | StyleBackgroundImage |
 		StyleBackgroundImageHover | StyleBackgroundImagePressed | StyleBackgroundDisabled |
@@ -400,7 +442,7 @@ func validStyle(style Style, kind string, version uint32) bool {
 	const all2 = Style2BackgroundFocus | Style2BackgroundImageFocus | Style2ColorFocus |
 		Style2TransitionDelay | Style2TransitionEasing | Style2Position |
 		Style2Left | Style2Right | Style2Top | Style2Bottom | Style2ImageFit | Style2Tint |
-		Style2Icon | Style2IconSize | Style2IconPosition | Style2IconGap
+		Style2Icon | Style2IconSize | Style2IconPosition | Style2IconGap | Style2Width | Style2Height
 	if style.Set2&^all2 != 0 {
 		return false
 	}
@@ -628,6 +670,10 @@ func validImage(image Image) bool {
 
 func validElementKind(element Element, modal, slots bool, version uint32) bool {
 	switch element.Kind {
+	case "checkbox", "combo", "input", "slider", "tabs":
+		return version >= SchemaWidgets && element.Action != 0
+	case "tab":
+		return version >= SchemaWidgets && element.Action == 0
 	case "panel":
 		return slots && element.Action == 0 && element.Text == ""
 	case "slot":

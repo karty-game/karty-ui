@@ -48,20 +48,28 @@ func UIPackageFiles(components []uicompiler.Component, module string) (map[strin
 
 func uiClientFiles(components []uicompiler.Component, module, packageName string) (map[string][]byte, error) {
 	result := map[string][]byte{}
+	templates := map[bool]*template.Template{}
 
 	for _, component := range components {
 		if !component.Local {
 			continue
 		}
 
-		source := uiClientSource
-		if component.Composition {
-			source = uiComposedClientSource
-		}
+		parsed := templates[component.Composition]
+		if parsed == nil {
+			source := uiClientSource
+			if component.Composition {
+				source = uiComposedClientSource
+			}
 
-		parsed, err := template.New(component.Source).Parse(source)
-		if err != nil {
-			return nil, err
+			var err error
+
+			parsed, err = template.New(component.Source).Parse(source)
+			if err != nil {
+				return nil, err
+			}
+
+			templates[component.Composition] = parsed
 		}
 
 		var output bytes.Buffer

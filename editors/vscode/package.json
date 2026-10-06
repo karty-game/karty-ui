@@ -1,34 +1,78 @@
 {
   "name": "kartui",
   "displayName": "KartUI",
-  "description": "Syntax highlighting and snippets for Karty UI components.",
-  "version": "0.1.17",
+  "description": "Context-aware completion, hover help, syntax highlighting and snippets for KartUI.",
+  "version": "0.1.20",
   "publisher": "karty-local",
   "icon": "./icons/kartui.png",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Programming Languages", "Snippets"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
   "license": "MIT",
   "contributes": {
-    "languages": [{
-      "id": "kartui",
-      "aliases": ["KartUI", "kartui"],
-      "extensions": [".kui", ".kui.tmpl"],
-      "icon": { "light": "./icons/kui-file.svg", "dark": "./icons/kui-file.svg" },
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "kartui",
-      "scopeName": "source.kartui",
-      "path": "./syntaxes/kartui.tmLanguage.json",
-      "embeddedLanguages": { "meta.embedded.expression.go": "go", "meta.embedded.parameters.go": "go", "meta.embedded.script.go": "go" }
-    }],
-    "snippets": [{ "language": "kartui", "path": "./snippets/kartui.json" }],
-    "iconThemes": [{
-      "id": "kartui-file-icons",
-      "label": "KartUI",
-      "path": "./fileicons/kartui-icon-theme.json"
-    }]
+    "languages": [
+      {
+        "id": "kartui",
+        "aliases": [
+          "KartUI",
+          "kartui"
+        ],
+        "extensions": [
+          ".kui",
+          ".kui.tmpl"
+        ],
+        "icon": {
+          "light": "./icons/kui-file.svg",
+          "dark": "./icons/kui-file.svg"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "kartui",
+        "scopeName": "source.kartui",
+        "path": "./syntaxes/kartui.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.expression.go": "go",
+          "meta.embedded.parameters.go": "go",
+          "meta.embedded.script.go": "go"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "kartui",
+        "path": "./snippets/kartui.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "kartui-file-icons",
+        "label": "KartUI",
+        "path": "./fileicons/kartui-icon-theme.json"
+      }
+    ]
   },
-  "scripts": { "test": "node --test test/*.test.mjs" },
-  "devDependencies": { "vscode-textmate": "9.3.2", "vscode-oniguruma": "2.0.1" }
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "vscode-textmate": "9.3.2",
+    "vscode-oniguruma": "2.0.1"
+  },
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onLanguage:kartui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  }
 }

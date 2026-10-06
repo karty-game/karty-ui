@@ -25,7 +25,8 @@ func setup(props MainMenuProps) {}
 </template>
 
 <style>
-.title { font-size: theme.typography.title; }
+.title
+  font-size: theme.typography.title
 </style>
 ```
 
@@ -37,13 +38,15 @@ the script and style blocks are optional.
 - **Compiler** for components, layouts, themes, and styles.
 - **Schema** for bounded UI definitions shared with the runtime.
 - **Go adapters** for typed bindings and callbacks.
-- **VS Code extension** for highlighting and snippets.
+- **VS Code extension** for context-aware completion, hover help, local style
+  navigation, highlighting and snippets.
 
 This single-file component format is experimental. The compiler also supports
 the legacy `kartui Name(...) { ... }` form. See [the SFC sample](samples/sfc-demo/README.md)
 for a component with setup logic, a reusable layout, and styles.
-KartUI's compiler and editor support `.kui`; the CLI's project discovery still
-uses `.ui` and needs its own migration before game projects can use `.kui`.
+KartUI's compiler and editor support `.kui`. The CLI also discovers, stages and
+packages `.kui` components/layouts alongside legacy `.ui` sources; existing
+projects can keep their current format.
 
 This public repository builds independently of the private Karty Engine.
 Rendering and platform input belong to the engine.

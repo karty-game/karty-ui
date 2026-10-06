@@ -17,6 +17,9 @@ import (
 // are projected into each consuming component; no layout lookup ships at runtime.
 type Layout struct {
 	Name, Source, Style string
+	styleWarnings       []Diagnostic
+	styleDocument       styleSource
+	markupDocument      styleSource
 	root                markupNode
 }
 
@@ -24,6 +27,7 @@ type markupNode struct {
 	Name     xml.Name
 	Attrs    []xml.Attr
 	Children []markupChild
+	Origin   markupOrigin
 }
 
 type markupChild struct {
@@ -31,21 +35,42 @@ type markupChild struct {
 	Node *markupNode
 }
 
+// Count the emitted tree, including every occurrence of a reused layout.
+// Layout references and conditional/loop wrappers are not runtime elements.
+type layoutBudget struct {
+	elements int
+}
+
 func parseLayout(source string, data []byte) (Layout, error) {
 	if len(data) > ui.MaxAssetBytes {
 		return Layout{}, fmt.Errorf("%s: layout source too large: %w", source, ui.ErrTemplate)
 	}
 
+	if err := reservedMarkupError(source, string(data)); err != nil {
+		return Layout{}, err
+	}
+
 	text := strings.TrimSpace(string(data))
+
+	var styleDocument, markupDocument styleSource
+
+	var styleWarnings []Diagnostic
+
 	if single, ok, err := parseSingleFileComponent(source, data); ok {
 		if err != nil {
 			return Layout{}, err
 		}
 
+		styleWarnings = single.styleWarnings
+		styleDocument = single.styleDocument
+		markupDocument = single.templateDocument
+
 		text, err = single.layoutSource(source)
 		if err != nil {
 			return Layout{}, err
 		}
+
+		text = strings.TrimSpace(text)
 	} else if err != nil {
 		return Layout{}, err
 	}
@@ -66,23 +91,50 @@ func parseLayout(source string, data []byte) (Layout, error) {
 	}
 
 	markup := strings.TrimSpace(declaration[opening+1 : len(declaration)-1])
-	if strings.Contains(markup, "{") {
-		return Layout{}, fmt.Errorf(
-			"%s: layouts cannot contain Go expressions; project page content through slots: %w",
-			source,
-			ui.ErrTemplate,
-		)
+	if markupDocument.original == "" {
+		markupDocument = sourceDocument(source, string(data), markup)
 	}
 
-	root, err := parseMarkupTree(markup)
-	if err != nil || root.Name.Local != "panel" {
-		return Layout{}, fmt.Errorf("%s: layout requires one root panel: %w", source, ui.ErrTemplate)
+	markupDocument = trimMarkupDocument(markupDocument)
+
+	if offset := strings.IndexByte(markup, '{'); offset >= 0 {
+		return Layout{}, sourceError(markupDocument.position(offset),
+			"layouts cannot contain Go expressions; project page content through slots", ui.ErrTemplate)
 	}
 
-	return Layout{Name: name, Source: source, Style: style, root: root}, nil
+	if styleDocument.original == "" {
+		styleDocument = sourceDocument(source, string(data), style)
+	}
+
+	root, err := parseMarkupTreeDocument(markup, markupDocument)
+	if err != nil {
+		return Layout{}, err
+	}
+
+	if root.Name.Local != "panel" {
+		return Layout{}, sourceError(root.Origin.location, "layout requires one root panel", ui.ErrTemplate)
+	}
+
+	scopeLayoutNode(&root, name)
+	styleDocument.scope = name
+
+	return Layout{
+		Name:           name,
+		Source:         source,
+		Style:          style,
+		styleWarnings:  styleWarnings,
+		styleDocument:  styleDocument,
+		markupDocument: markupDocument,
+		root:           root,
+	}, nil
 }
 
 func parseMarkupTree(markup string) (markupNode, error) {
+	return parseMarkupTreeDocument(markup, styleSource{text: markup, original: markup})
+}
+
+func parseMarkupTreeDocument(markup string, document styleSource) (markupNode, error) {
+	cursor := 0
 	decoder := xml.NewDecoder(strings.NewReader(markup))
 
 	var roots []markupNode
@@ -96,12 +148,23 @@ func parseMarkupTree(markup string) (markupNode, error) {
 		}
 
 		if err != nil {
-			return markupNode{}, err
+			location := document.position(len(document.text))
+
+			if _, ok := errors.AsType[*xml.SyntaxError](err); ok {
+				line, _ := decoder.InputPos()
+				location = styleLineLocation(document, line)
+			}
+
+			return markupNode{}, sourceError(location, "invalid markup", err)
 		}
 
 		switch value := token.(type) {
 		case xml.StartElement:
-			node := markupNode{Name: value.Name, Attrs: append([]xml.Attr(nil), value.Attr...)}
+			node := markupNode{
+				Name:   value.Name,
+				Attrs:  append([]xml.Attr(nil), value.Attr...),
+				Origin: markupOrigin{location: nextMarkupLocation(document, &cursor, value.Name.Local)},
+			}
 			if len(stack) == 0 {
 				roots = append(roots, node)
 				stack = append(stack, &roots[len(roots)-1])
@@ -139,30 +202,32 @@ func parseMarkupTree(markup string) (markupNode, error) {
 	return roots[0], nil
 }
 
-func expandLayouts(source, markup string, layouts map[string]Layout) (string, []string, error) {
-	if len(layouts) == 0 {
-		return markup, nil, nil
+func expandLayouts(source, markup string, document styleSource, layouts map[string]Layout) (string, []styleSource, []markupOrigin, error) {
+	if document.original == "" {
+		document = sourceDocument(source, markup, markup)
 	}
 
-	root, err := parseMarkupTree(markup)
+	root, err := parseMarkupTreeDocument(markup, document)
 	if err != nil {
-		return "", nil, fmt.Errorf("%s: %w", source, err)
+		return "", nil, nil, sourceError(document.position(0), "invalid markup", err)
 	}
 
-	styles := make([]string, 0, len(layouts))
+	styles := make([]styleSource, 0, len(layouts))
 	used := make(map[string]bool, len(layouts))
 
-	expanded, err := expandNode(root, layouts, nil, used, &styles)
+	expanded, err := expandNode(root, layouts, nil, used, &styles, &layoutBudget{}, 0)
 	if err != nil {
-		return "", nil, fmt.Errorf("%s: %w", source, err)
+		return "", nil, nil, sourceError(root.Origin.location, "invalid layout expansion", err)
 	}
 
-	encoded, err := encodeMarkup(expanded)
+	origins := []markupOrigin{}
+
+	encoded, err := encodeMarkupOrigins(expanded, &origins)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
-	return encoded, styles, nil
+	return encoded, styles, origins, nil
 }
 
 func expandNode(
@@ -170,11 +235,30 @@ func expandNode(
 	layouts map[string]Layout,
 	stack []string,
 	used map[string]bool,
-	styles *[]string,
+	styles *[]styleSource,
+	budget *layoutBudget,
+	panelDepth int,
 ) (markupNode, error) {
 	layout, isLayout := layouts[node.Name.Local]
 	if isLayout {
-		return expandLayoutNode(node, layout, layouts, stack, used, styles)
+		expanded, err := expandLayoutNode(node, layout, layouts, stack, used, styles, budget, panelDepth)
+		if err != nil {
+			return markupNode{}, sourceError(node.Origin.location, "invalid layout invocation", err)
+		}
+
+		return expanded, nil
+	}
+
+	if panelDepth > 0 && node.Name.Local != "_kartyIf" && node.Name.Local != "_kartyLoop" {
+		if budget.elements >= ui.MaxElements || panelDepth > maxElementDepth {
+			return markupNode{}, fmt.Errorf("expanded layout exceeds element count or depth limits: %w", ui.ErrTemplate)
+		}
+
+		budget.elements++
+	}
+
+	if isControlContainer(node.Name.Local) {
+		panelDepth++
 	}
 
 	for index, child := range node.Children {
@@ -182,7 +266,7 @@ func expandNode(
 			continue
 		}
 
-		expanded, err := expandNode(*child.Node, layouts, stack, used, styles)
+		expanded, err := expandNode(*child.Node, layouts, stack, used, styles, budget, panelDepth)
 		if err != nil {
 			return markupNode{}, err
 		}
@@ -199,7 +283,9 @@ func expandLayoutNode(
 	layouts map[string]Layout,
 	stack []string,
 	used map[string]bool,
-	styles *[]string,
+	styles *[]styleSource,
+	budget *layoutBudget,
+	panelDepth int,
 ) (markupNode, error) {
 	if !validLayoutAttributes(node.Attrs) || contains(stack, layout.Name) {
 		return markupNode{}, fmt.Errorf(
@@ -232,10 +318,10 @@ func expandLayoutNode(
 
 	if !used[layout.Name] {
 		used[layout.Name] = true
-		*styles = append(*styles, layout.Style)
+		*styles = append(*styles, layout.styleDocument)
 	}
 
-	return expandNode(projected, layouts, append(stack, layout.Name), used, styles)
+	return expandNode(projected, layouts, append(stack, layout.Name), used, styles, budget, panelDepth)
 }
 
 func validLayoutAttributes(attributes []xml.Attr) bool {
@@ -285,6 +371,24 @@ func layoutFills(children []markupChild) (map[string][]markupChild, error) {
 }
 
 func projectSlots(node markupNode, fills map[string][]markupChild) (markupNode, error) {
+	// Bound projection too: a layout may repeat a large slot fill many times
+	// before expansion gets a chance to count its emitted elements.
+	remaining := ui.MaxElements + 1 // Includes the layout's root panel.
+
+	return projectNode(node, fills, &remaining)
+}
+
+func projectNode(node markupNode, fills map[string][]markupChild, remaining *int) (markupNode, error) {
+	if node.Name.Local != "fragment" && node.Name.Local != "_kartyIf" && node.Name.Local != "_kartyLoop" {
+		if *remaining == 0 {
+			return markupNode{}, fmt.Errorf("layout projection exceeds element limit: %w", ui.ErrTemplate)
+		}
+
+		*remaining--
+	}
+
+	node.Attrs = append([]xml.Attr(nil), node.Attrs...)
+
 	children := make([]markupChild, 0, len(node.Children))
 	for _, child := range node.Children {
 		if child.Node == nil {
@@ -293,8 +397,8 @@ func projectSlots(node markupNode, fills map[string][]markupChild) (markupNode, 
 			continue
 		}
 
-		if child.Node.Name.Local != "slot" {
-			projected, err := projectSlots(*child.Node, fills)
+		if child.Node.Name.Local != "slot" || fills == nil {
+			projected, err := projectNode(*child.Node, fills, remaining)
 			if err != nil {
 				return markupNode{}, err
 			}
@@ -304,22 +408,12 @@ func projectSlots(node markupNode, fills map[string][]markupChild) (markupNode, 
 			continue
 		}
 
-		name := ""
-
-		if len(child.Node.Attrs) > 1 || (len(child.Node.Attrs) == 1 && child.Node.Attrs[0].Name.Local != "name") {
-			return markupNode{}, fmt.Errorf("slot supports only name: %w", ui.ErrTemplate)
+		fill, err := projectFill(*child.Node, fills, remaining)
+		if err != nil {
+			return markupNode{}, err
 		}
 
-		if len(child.Node.Attrs) == 1 {
-			name = child.Node.Attrs[0].Value
-		}
-
-		fill, exists := fills[name]
-		if !exists {
-			fill = child.Node.Children
-		}
-
-		children = append(children, cloneChildren(fill)...)
+		children = append(children, fill...)
 	}
 
 	node.Children = children
@@ -327,11 +421,47 @@ func projectSlots(node markupNode, fills map[string][]markupChild) (markupNode, 
 	return node, nil
 }
 
-func encodeMarkup(root markupNode) (string, error) {
+func projectFill(slot markupNode, fills map[string][]markupChild, remaining *int) ([]markupChild, error) {
+	if len(slot.Attrs) > 1 || (len(slot.Attrs) == 1 && slot.Attrs[0].Name.Local != "name") {
+		return nil, fmt.Errorf("slot supports only name: %w", ui.ErrTemplate)
+	}
+
+	name := ""
+	if len(slot.Attrs) == 1 {
+		name = slot.Attrs[0].Value
+	}
+
+	fill, exists := fills[name]
+	if !exists {
+		fill = slot.Children
+	}
+
+	children := make([]markupChild, 0, len(fill))
+	for _, content := range fill {
+		if content.Node == nil {
+			children = append(children, content)
+
+			continue
+		}
+
+		// Fill markup belongs to the caller, so do not project its slots
+		// using the containing layout's namespace.
+		cloned, err := projectNode(*content.Node, nil, remaining)
+		if err != nil {
+			return nil, err
+		}
+
+		children = append(children, markupChild{Node: &cloned})
+	}
+
+	return children, nil
+}
+
+func encodeMarkupOrigins(root markupNode, origins *[]markupOrigin) (string, error) {
 	var output bytes.Buffer
 
 	encoder := xml.NewEncoder(&output)
-	if err := encodeNode(encoder, root); err != nil {
+	if err := encodeNode(encoder, root, origins); err != nil {
 		return "", err
 	}
 
@@ -342,15 +472,19 @@ func encodeMarkup(root markupNode) (string, error) {
 	return output.String(), nil
 }
 
-func encodeNode(encoder *xml.Encoder, node markupNode) error {
-	start := xml.StartElement{Name: node.Name, Attr: node.Attrs}
+func encodeNode(encoder *xml.Encoder, node markupNode, origins *[]markupOrigin) error {
+	start := xml.StartElement{Name: node.Name, Attr: append([]xml.Attr(nil), node.Attrs...)}
+	if origins != nil {
+		start.Attr = append(start.Attr, originAttribute(node.Origin, origins))
+	}
+
 	if err := encoder.EncodeToken(start); err != nil {
 		return err
 	}
 
 	for _, child := range node.Children {
 		if child.Node != nil {
-			if err := encodeNode(encoder, *child.Node); err != nil {
+			if err := encodeNode(encoder, *child.Node, origins); err != nil {
 				return err
 			}
 		} else if err := encoder.EncodeToken(xml.CharData(child.Text)); err != nil {

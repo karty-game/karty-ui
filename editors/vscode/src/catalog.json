@@ -1,0 +1,1033 @@
+{
+  "properties": {
+    "background": {
+      "targets": [
+        "root",
+        "panel",
+        "tab",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Background color: #RRGGBB, #RRGGBBAA, or a theme color.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "color": {
+      "targets": [
+        "label",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Text color: #RRGGBB, #RRGGBBAA, or a theme color.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "background-image": {
+      "targets": [
+        "root",
+        "panel",
+        "tab",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Typed theme image, e.g. theme.images.panel. The image must exist in your project theme.",
+      "values": [],
+      "aliases": []
+    },
+    "background-hover": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive hover background. Prefer nested &:hover rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "color-hover": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive hover color. Prefer nested &:hover rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "background-image-hover": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive hover background-image. Prefer nested &:hover rules for readability.",
+      "values": [],
+      "aliases": []
+    },
+    "background-focus": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Interactive focus background. Prefer nested &:focus rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "color-focus": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Interactive focus color. Prefer nested &:focus rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "background-image-focus": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Interactive focus background-image. Prefer nested &:focus rules for readability.",
+      "values": [],
+      "aliases": []
+    },
+    "background-pressed": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive pressed background. Prefer nested &:pressed rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "color-pressed": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive pressed color. Prefer nested &:pressed rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "background-image-pressed": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive pressed background-image. Prefer nested &:pressed rules for readability.",
+      "values": [],
+      "aliases": []
+    },
+    "background-disabled": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive disabled background. Prefer nested &:disabled rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "color-disabled": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive disabled color. Prefer nested &:disabled rules for readability.",
+      "values": [
+        "#ffffff",
+        "theme.colors.text",
+        "theme.colors.primary"
+      ],
+      "aliases": []
+    },
+    "background-image-disabled": {
+      "targets": [
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Interactive disabled background-image. Prefer nested &:disabled rules for readability.",
+      "values": [],
+      "aliases": []
+    },
+    "padding": {
+      "targets": [
+        "root",
+        "panel",
+        "tab"
+      ],
+      "detail": "Uniform logical pixels, integer 0\u2013256; optional px suffix.",
+      "values": [
+        "8px",
+        "16px",
+        "0px"
+      ],
+      "aliases": []
+    },
+    "gap": {
+      "targets": [
+        "root",
+        "panel",
+        "tab"
+      ],
+      "detail": "Uniform logical pixels, integer 0\u2013256; optional px suffix.",
+      "values": [
+        "8px",
+        "16px",
+        "0px"
+      ],
+      "aliases": []
+    },
+    "flex-direction": {
+      "targets": [
+        "root",
+        "panel",
+        "tab"
+      ],
+      "detail": "Flow direction of child controls.",
+      "values": [
+        "column",
+        "row"
+      ],
+      "aliases": [
+        "direction"
+      ]
+    },
+    "align-items": {
+      "targets": [
+        "root",
+        "panel",
+        "tab"
+      ],
+      "detail": "Alignment across the flow direction.",
+      "values": [
+        "start",
+        "center",
+        "end",
+        "stretch"
+      ],
+      "aliases": [
+        "align"
+      ]
+    },
+    "justify-content": {
+      "targets": [
+        "root",
+        "panel",
+        "tab"
+      ],
+      "detail": "Distribution along the flow direction.",
+      "values": [
+        "start",
+        "center",
+        "end",
+        "space-between"
+      ],
+      "aliases": [
+        "justify"
+      ]
+    },
+    "overflow": {
+      "targets": [
+        "root",
+        "panel"
+      ],
+      "detail": "visible or scroll. Scroll requires bounded height and does not support slide transitions.",
+      "values": [
+        "visible",
+        "scroll"
+      ],
+      "aliases": []
+    },
+    "position": {
+      "targets": [
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "absolute overlays use parent content after padding and consume no flow space. Root panels cannot be overlays.",
+      "values": [
+        "absolute"
+      ],
+      "aliases": []
+    },
+    "left": {
+      "targets": [
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Integer inset 0\u20132048 logical pixels. Requires position: absolute. Paired insets stretch the axis.",
+      "values": [
+        "0px",
+        "16px"
+      ],
+      "aliases": []
+    },
+    "right": {
+      "targets": [
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Integer inset 0\u20132048 logical pixels. Requires position: absolute. Paired insets stretch the axis.",
+      "values": [
+        "0px",
+        "16px"
+      ],
+      "aliases": []
+    },
+    "top": {
+      "targets": [
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Integer inset 0\u20132048 logical pixels. Requires position: absolute. Paired insets stretch the axis.",
+      "values": [
+        "0px",
+        "16px"
+      ],
+      "aliases": []
+    },
+    "bottom": {
+      "targets": [
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Integer inset 0\u20132048 logical pixels. Requires position: absolute. Paired insets stretch the axis.",
+      "values": [
+        "0px",
+        "16px"
+      ],
+      "aliases": []
+    },
+    "font-size": {
+      "targets": [
+        "label",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Integer logical pixels 0\u2013128; optional px suffix.",
+      "values": [
+        "20px",
+        "28px",
+        "theme.typography.body"
+      ],
+      "aliases": []
+    },
+    "font-family": {
+      "targets": [
+        "label",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "One of the built-in font families.",
+      "values": [
+        "body",
+        "display",
+        "mono"
+      ],
+      "aliases": []
+    },
+    "text-align": {
+      "targets": [
+        "label",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo"
+      ],
+      "detail": "Alignment of text within its control.",
+      "values": [
+        "left",
+        "center",
+        "right"
+      ],
+      "aliases": []
+    },
+    "image": {
+      "targets": [
+        "image"
+      ],
+      "detail": "Typed theme image, e.g. theme.images.logo. The image must exist in your project theme.",
+      "values": [],
+      "aliases": []
+    },
+    "image-fit": {
+      "targets": [
+        "image"
+      ],
+      "detail": "stretch, contain (fit inside), or cover (fill and crop).",
+      "values": [
+        "stretch",
+        "contain",
+        "cover"
+      ],
+      "aliases": []
+    },
+    "icon": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Typed theme image. Widget icons require an existing theme image.",
+      "values": [],
+      "aliases": []
+    },
+    "icon-position": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Placement of the icon relative to text. Requires icon.",
+      "values": [
+        "start",
+        "end"
+      ],
+      "aliases": []
+    },
+    "icon-size": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Integer logical pixels 0\u2013256. Requires icon.",
+      "values": [
+        "16px",
+        "8px"
+      ],
+      "aliases": []
+    },
+    "icon-gap": {
+      "targets": [
+        "button",
+        "list"
+      ],
+      "detail": "Integer logical pixels 0\u2013256. Requires icon.",
+      "values": [
+        "16px",
+        "8px"
+      ],
+      "aliases": []
+    },
+    "tint": {
+      "targets": [
+        "image",
+        "button",
+        "list"
+      ],
+      "detail": "Image/icon tint color.",
+      "values": [
+        "#ffffff"
+      ],
+      "aliases": []
+    },
+    "width": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "auto, integer 0\u20132048 logical pixels (px optional), or 0\u2013100% with up to two decimal places. Percentages use the parent content area after padding. Out-of-range styles warn and are ignored.",
+      "values": [
+        "auto",
+        "100%",
+        "80%",
+        "33.33%",
+        "44px"
+      ],
+      "aliases": []
+    },
+    "height": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "auto, integer 0\u20132048 logical pixels (px optional), or 0\u2013100% with up to two decimal places. Percentages use the parent content area after padding. Out-of-range styles warn and are ignored.",
+      "values": [
+        "auto",
+        "100%",
+        "80%",
+        "33.33%",
+        "44px"
+      ],
+      "aliases": []
+    },
+    "min-width": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Optional clamp: integer 0\u20132048 logical pixels; optional px suffix. min must not exceed max.",
+      "values": [
+        "44px",
+        "128px"
+      ],
+      "aliases": []
+    },
+    "min-height": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Optional clamp: integer 0\u2013256 logical pixels; optional px suffix. min must not exceed max.",
+      "values": [
+        "44px",
+        "128px"
+      ],
+      "aliases": []
+    },
+    "max-width": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Optional clamp: integer 0\u20132048 logical pixels; optional px suffix. min must not exceed max.",
+      "values": [
+        "44px",
+        "128px"
+      ],
+      "aliases": []
+    },
+    "max-height": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Optional clamp: integer 0\u20132048 logical pixels; optional px suffix. min must not exceed max.",
+      "values": [
+        "44px",
+        "128px"
+      ],
+      "aliases": []
+    },
+    "flex-grow": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Integer weight 0\u201316 for sharing remaining main-axis space.",
+      "values": [
+        "0",
+        "1",
+        "2"
+      ],
+      "aliases": [
+        "grow"
+      ]
+    },
+    "margin": {
+      "targets": [
+        "root",
+        "panel",
+        "label",
+        "image",
+        "button",
+        "list",
+        "checkbox",
+        "input",
+        "slider",
+        "combo",
+        "tabs",
+        "tab"
+      ],
+      "detail": "Uniform logical pixels, integer 0\u2013256.",
+      "values": [
+        "0px",
+        "8px",
+        "16px"
+      ],
+      "aliases": []
+    },
+    "transition-duration": {
+      "targets": [
+        "root",
+        "panel",
+        "button",
+        "list"
+      ],
+      "detail": "Integer milliseconds 0\u20132000, without a unit suffix. Panel transitions require a slide direction; delay requires a positive duration.",
+      "values": [
+        "150",
+        "250"
+      ],
+      "aliases": []
+    },
+    "transition-delay": {
+      "targets": [
+        "root",
+        "panel",
+        "button",
+        "list"
+      ],
+      "detail": "Integer milliseconds 0\u20132000, without a unit suffix. Panel transitions require a slide direction; delay requires a positive duration.",
+      "values": [
+        "150",
+        "250"
+      ],
+      "aliases": []
+    },
+    "transition-easing": {
+      "targets": [
+        "root",
+        "panel",
+        "button",
+        "list"
+      ],
+      "detail": "Interpolation curve. Requires a positive transition-duration.",
+      "values": [
+        "linear",
+        "ease-out",
+        "ease-in-out"
+      ],
+      "aliases": []
+    },
+    "transition-enter": {
+      "targets": [
+        "root",
+        "panel"
+      ],
+      "detail": "Slide entry direction. Requires a positive transition-duration; scroll panels cannot slide.",
+      "values": [
+        "slide-from-left",
+        "slide-from-right",
+        "slide-from-top",
+        "slide-from-bottom"
+      ],
+      "aliases": []
+    },
+    "transition-exit": {
+      "targets": [
+        "root",
+        "panel"
+      ],
+      "detail": "Slide exit direction. Requires a positive transition-duration; scroll panels cannot slide.",
+      "values": [
+        "slide-to-left",
+        "slide-to-right",
+        "slide-to-top",
+        "slide-to-bottom"
+      ],
+      "aliases": []
+    }
+  },
+  "tags": {
+    "panel": {
+      "detail": "Layout container. A component has one root panel. Nested panels can contain controls.",
+      "attributes": [
+        "class",
+        "modal",
+        "onBack",
+        "tooltip"
+      ]
+    },
+    "label": {
+      "detail": "Text label: one literal or one Go expression, e.g. {props.Title}.",
+      "attributes": [
+        "class",
+        "tooltip"
+      ]
+    },
+    "image": {
+      "detail": "Image control; choose a typed theme image with the image style.",
+      "attributes": [
+        "class",
+        "tooltip"
+      ]
+    },
+    "button": {
+      "detail": "Button with onClick={func()}. Body is one literal or one Go text expression.",
+      "attributes": [
+        "class",
+        "enabled",
+        "onClick",
+        "tooltip"
+      ]
+    },
+    "list": {
+      "detail": "Host-owned rows: rows={[]UIRow}, onClick={func(uint32)}.",
+      "attributes": [
+        "class",
+        "enabled",
+        "rows",
+        "onClick",
+        "tooltip"
+      ]
+    },
+    "checkbox": {
+      "detail": "checked={bool}, onChange={func(bool)}. Body label must be literal.",
+      "attributes": [
+        "class",
+        "enabled",
+        "checked",
+        "onChange",
+        "tooltip"
+      ]
+    },
+    "input": {
+      "detail": "value={string}, onChange={func(string)}. Supports literal placeholder.",
+      "attributes": [
+        "class",
+        "enabled",
+        "value",
+        "onChange",
+        "placeholder",
+        "tooltip"
+      ]
+    },
+    "slider": {
+      "detail": "value={int32}, onChange={func(int32)}. Literal min/max; defaults 0/100.",
+      "attributes": [
+        "class",
+        "enabled",
+        "value",
+        "onChange",
+        "min",
+        "max",
+        "tooltip"
+      ]
+    },
+    "combo": {
+      "detail": "Selectable rows={[]UIRow}, selected={uint32}, onChange={func(uint32)}.",
+      "attributes": [
+        "class",
+        "enabled",
+        "rows",
+        "selected",
+        "onChange",
+        "tooltip"
+      ]
+    },
+    "tabs": {
+      "detail": "Container of tab children: selected={uint32}, onChange={func(uint32)}.",
+      "attributes": [
+        "class",
+        "enabled",
+        "selected",
+        "onChange",
+        "tooltip"
+      ]
+    },
+    "tab": {
+      "detail": "Tab content container, directly inside tabs. Its title is literal.",
+      "attributes": [
+        "class",
+        "title",
+        "tooltip"
+      ]
+    },
+    "slot": {
+      "detail": "Layout projection point; default children are fallback content.",
+      "attributes": [
+        "name"
+      ]
+    },
+    "fragment": {
+      "detail": "Named slot fill inside a layout invocation.",
+      "attributes": [
+        "slot"
+      ]
+    }
+  },
+  "attributes": {
+    "class": {
+      "detail": "One static style class from this component. Multiple classes and dynamic classes are unsupported.",
+      "insert": "class=\"${1:screen}\"",
+      "values": []
+    },
+    "tooltip": {
+      "detail": "Literal help text, up to 4096 UTF-8 bytes.",
+      "insert": "tooltip=\"${1:Help text}\"",
+      "values": []
+    },
+    "enabled": {
+      "detail": "Go boolean expression controlling whether the control accepts input.",
+      "insert": "enabled={${1:true}}",
+      "values": []
+    },
+    "modal": {
+      "detail": "Root panel: true captures game input; false keeps an interactive HUD. Defaults to true.",
+      "insert": "modal=\"${1|true,false|}\"",
+      "values": [
+        "true",
+        "false"
+      ]
+    },
+    "onBack": {
+      "detail": "Modal root/layout invocation: callback func() for Escape/gamepad Back.",
+      "insert": "onBack={func() { ${1} }}",
+      "values": []
+    },
+    "onClick": {
+      "detail": "Button: func(); list: func(uint32) receives the stable row ID.",
+      "insert": "onClick={func() { ${1} }}",
+      "values": []
+    },
+    "rows": {
+      "detail": "[]UIRow from the generated engine package. Each row needs a stable nonzero ID.",
+      "insert": "rows={${1:rows}}",
+      "values": []
+    },
+    "checked": {
+      "detail": "Checkbox: Go bool expression for the model value.",
+      "insert": "checked={${1:false}}",
+      "values": []
+    },
+    "onChange": {
+      "detail": "Typed model callback: checkbox func(bool), input func(string), slider func(int32), combo/tabs func(uint32). Widget changes invalidate the edited component automatically.",
+      "insert": "onChange={${1:change}}",
+      "values": []
+    },
+    "value": {
+      "detail": "Input: string expression; slider: int32 expression for the current model value.",
+      "insert": "value={${1:value}}",
+      "values": []
+    },
+    "selected": {
+      "detail": "Combo: stable uint32 row ID, 0 for none. Tabs: uint32 zero-based visible tab index.",
+      "insert": "selected={${1:uint32(0)}}",
+      "values": []
+    },
+    "placeholder": {
+      "detail": "Input: literal placeholder, up to 4096 UTF-8 bytes.",
+      "insert": "placeholder=\"${1:Player name}\"",
+      "values": []
+    },
+    "min": {
+      "detail": "Slider: literal integer in [-1000000, 1000000]. min must be less than max and value must lie within the bounds.",
+      "insert": "min=\"${1:0}\"",
+      "values": []
+    },
+    "max": {
+      "detail": "Slider: literal integer in [-1000000, 1000000]. min must be less than max and value must lie within the bounds.",
+      "insert": "max=\"${1:100}\"",
+      "values": []
+    },
+    "title": {
+      "detail": "Tab: literal title, up to 4096 UTF-8 bytes.",
+      "insert": "title=\"${1:General}\"",
+      "values": []
+    },
+    "name": {
+      "detail": "Layout slot name. Omit for the default slot.",
+      "insert": "name=\"${1:header}\"",
+      "values": []
+    },
+    "slot": {
+      "detail": "Named layout slot filled by this fragment.",
+      "insert": "slot=\"${1:header}\"",
+      "values": []
+    },
+    "props": {
+      "detail": "Typed Go props expression passed to this child component.",
+      "insert": "props={${1:props}}",
+      "values": []
+    },
+    "key": {
+      "detail": "Range child: stable uint32 or string key (up to 128 UTF-8 bytes). Preserves setup state when children reorder.",
+      "insert": "key={${1:item.ID}}",
+      "values": []
+    }
+  }
+}

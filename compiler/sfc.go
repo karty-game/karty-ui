@@ -1,9 +1,11 @@
 package uicompiler
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/scanner"
 	"go/token"
 	"path/filepath"
 	"strings"
@@ -13,92 +15,142 @@ import (
 )
 
 type singleFileComponent struct {
-	script   string
-	template string
-	style    string
+	script                      string
+	template                    string
+	style                       string
+	preamble, parameters, setup string
+	hasScript                   bool
+	styleIndented               bool
+	styleWarnings               []Diagnostic
+	styleDocument               styleSource
+	templateDocument            styleSource
+	scriptStart                 int
 }
 
 // parseSingleFileComponent recognizes the experimental SFC syntax. Script
 // content is a Go file containing imports/types and one setup function.
 func parseSingleFileComponent(source string, data []byte) (singleFileComponent, bool, error) {
-	if !strings.HasPrefix(strings.TrimSpace(string(data)), "<") {
+	original := string(data)
+	if !strings.HasPrefix(strings.TrimSpace(original), "<") {
 		return singleFileComponent{}, false, nil
 	}
 
-	text := strings.TrimSpace(string(data))
 	result := singleFileComponent{}
 	seen := map[string]bool{}
 
+	text := original
 	for len(text) > 0 {
 		text = strings.TrimLeft(text, " \t\r\n")
 		if text == "" {
 			break
 		}
 
-		if !strings.HasPrefix(text, "<") {
-			return result, true, fmt.Errorf("%s: expected an SFC block: %w", source, ui.ErrTemplate)
+		offset := len(original) - len(text)
+		location := sourcePosition(source, original, offset)
+
+		if strings.HasPrefix(text, "<!--") {
+			end := strings.Index(text, "-->")
+			if end < 0 {
+				return result, true, sourceError(location, "unclosed SFC comment", ui.ErrTemplate)
+			}
+
+			text = text[end+len("-->"):]
+
+			continue
 		}
 
-		openingEnd := strings.IndexByte(text, '>')
+		openingEnd := sfcOpeningEnd(text)
 		if openingEnd < 0 {
-			return result, true, fmt.Errorf("%s: unclosed SFC block: %w", source, ui.ErrTemplate)
+			return result, true, sourceError(location, "expected an opening SFC block", ui.ErrTemplate)
 		}
 
-		opening := text[:openingEnd+1]
-
-		var name string
-
-		switch opening {
-		case `<script setup lang="go">`:
-			name = "script"
-		case "<template>":
-			name = "template"
-		case "<style>":
-			name = "style"
-		default:
-			return result, true, fmt.Errorf("%s: unsupported SFC block %s: %w", source, opening, ui.ErrTemplate)
+		name, attributes, err := sfcOpening(text[:openingEnd+1])
+		if err != nil {
+			return result, true, sourceError(location, "invalid SFC opening block", err)
 		}
 
 		if seen[name] {
-			return result, true, fmt.Errorf("%s: duplicate SFC %s block: %w", source, name, ui.ErrTemplate)
+			return result, true, sourceError(location, "duplicate SFC "+name+" block", ui.ErrTemplate)
 		}
 
 		seen[name] = true
+		contentStart := offset + openingEnd + 1
 
-		closing := "</" + name + ">"
-
-		closeAt := strings.Index(text[openingEnd+1:], closing)
+		closeAt, closeEnd := sfcClosing(text[openingEnd+1:], name)
 		if closeAt < 0 {
-			return result, true, fmt.Errorf("%s: missing %s: %w", source, closing, ui.ErrTemplate)
+			return result, true, sourceError(location, "missing </"+name+">", ui.ErrTemplate)
 		}
 
-		contentStart := openingEnd + 1
-		contentEnd := contentStart + closeAt
-		content := text[contentStart:contentEnd]
+		content := text[openingEnd+1 : openingEnd+1+closeAt]
+		document := styleSource{source: source, text: content, original: original, start: contentStart}
 
 		switch name {
 		case "script":
 			result.script = content
+			result.scriptStart = contentStart
 		case "template":
 			result.template = content
+			result.templateDocument = document
 		case "style":
 			result.style = content
+			result.styleDocument = document
+			result.styleIndented = attributes["lang"] == "sass"
 		}
 
-		text = text[contentEnd+len(closing):]
+		text = text[openingEnd+1+closeEnd:]
 	}
 
-	if !seen["template"] || strings.TrimSpace(result.template) == "" {
-		return result, true, fmt.Errorf("%s: SFC requires a non-empty template block: %w", source, ui.ErrTemplate)
+	return finishSingleFileComponent(source, original, result, seen["template"], seen["script"])
+}
+
+func finishSingleFileComponent(
+	source, original string,
+	result singleFileComponent,
+	hasTemplate, hasScript bool,
+) (singleFileComponent, bool, error) {
+	finished, err := finishSingleFileBlocks(source, original, result, hasTemplate, hasScript)
+
+	return finished, true, err
+}
+
+func finishSingleFileBlocks(source, original string, result singleFileComponent, hasTemplate, hasScript bool) (singleFileComponent, error) {
+	if !hasTemplate || strings.TrimSpace(result.template) == "" {
+		return result, sourceError(sourcePosition(source, original, 0), "SFC requires a non-empty template block", ui.ErrTemplate)
 	}
 
-	if seen["script"] {
-		if _, _, _, err := sfcSetup(source, result.script); err != nil {
-			return result, true, err
+	if result.styleIndented || (strings.TrimSpace(result.style) != "" && !strings.ContainsAny(result.style, "{}")) {
+		document, err := lowerIndentedStyleDocument(result.styleDocument)
+		if err != nil {
+			return result, err
 		}
+
+		result.styleDocument = document
+		result.style = document.text
+		result.styleWarnings = document.warnings
 	}
 
-	return result, true, nil
+	if hasScript {
+		var err error
+
+		result.preamble, result.parameters, result.setup, err = sfcSetup(source, result.script)
+		if err != nil {
+			if failures, ok := errors.AsType[scanner.ErrorList](err); ok {
+				failure := failures[0]
+
+				return result, sourceError(
+					sourcePosition(source, original, result.scriptStart+max(0, failure.Pos.Offset-len("package kartui\n"))),
+					failure.Msg,
+					ui.ErrTemplate,
+				)
+			}
+
+			return result, sourceError(sourcePosition(source, original, result.scriptStart), "invalid Go setup", err)
+		}
+
+		result.hasScript = true
+	}
+
+	return result, nil
 }
 
 func (component singleFileComponent) componentSource(source string) (string, error) {
@@ -107,12 +159,9 @@ func (component singleFileComponent) componentSource(source string) (string, err
 		return "", err
 	}
 
-	preamble, parameters, body := "", "()", ""
-	if component.script != "" {
-		preamble, parameters, body, err = sfcSetup(source, component.script)
-		if err != nil {
-			return "", err
-		}
+	preamble, parameters, body := component.preamble, component.parameters, component.setup
+	if !component.hasScript {
+		parameters = "()"
 	}
 
 	var result strings.Builder
@@ -121,7 +170,7 @@ func (component singleFileComponent) componentSource(source string) (string, err
 		result.WriteByte('\n')
 	}
 
-	if component.script != "" {
+	if component.hasScript {
 		result.WriteString("setup ")
 		result.WriteString(name)
 		result.WriteString(parameters)
@@ -133,7 +182,7 @@ func (component singleFileComponent) componentSource(source string) (string, err
 	result.WriteString("kartui ")
 	result.WriteString(name)
 
-	if component.script == "" {
+	if !component.hasScript {
 		result.WriteString(parameters)
 	}
 
@@ -156,7 +205,7 @@ func (component singleFileComponent) layoutSource(source string) (string, error)
 		return "", err
 	}
 
-	if component.script != "" {
+	if component.hasScript {
 		return "", fmt.Errorf("%s: layout SFC cannot contain a script block: %w", source, ui.ErrTemplate)
 	}
 

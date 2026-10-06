@@ -22,7 +22,16 @@ func setup(args MenuProps) {
 </template>
 
 <style>
-.title { color: theme.colors.accent; font-size: theme.typography.title; }
-.primary { background: theme.colors.primary; color: theme.colors.text; }
-.primary:hover { background: theme.colors.primary-hover; }
+$accent: theme.colors.accent
+
+.title
+  color: $accent
+  font-size: theme.typography.title
+
+.primary
+  width: 100%
+  background: theme.colors.primary
+  color: theme.colors.text
+  &:hover
+    background: theme.colors.primary-hover
 </style>

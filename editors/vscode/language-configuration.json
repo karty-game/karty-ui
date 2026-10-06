@@ -1,17 +1,89 @@
 {
-  "comments": { "blockComment": ["<!--", "-->"] },
-  "brackets": [["{", "}"], ["[", "]"], ["(", ")"]],
-  "autoClosingPairs": [
-    { "open": "{", "close": "}", "notIn": ["string", "comment"] },
-    { "open": "[", "close": "]", "notIn": ["string", "comment"] },
-    { "open": "(", "close": ")", "notIn": ["string", "comment"] },
-    { "open": "\"", "close": "\"", "notIn": ["string", "comment"] },
-    { "open": "`", "close": "`", "notIn": ["string", "comment"] }
+  "comments": {
+    "blockComment": [
+      "<!--",
+      "-->"
+    ]
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
   ],
-  "surroundingPairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""]],
-  "folding": { "offSide": false },
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "[",
+      "close": "]",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "(",
+      "close": ")",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "`",
+      "close": "`",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "\"",
+      "\""
+    ]
+  ],
+  "folding": {
+    "offSide": false
+  },
   "indentationRules": {
-    "increaseIndentPattern": "^.*(?:\\{|\\()\\s*$|^\\s*<(?!/|!)[\\w-]+(?:\\s[^>]*)?>(?!.*</).*$",
+    "increaseIndentPattern": "^.*(?:\\{|\\()\\s*$|^\\s*<(?!/|!)[\\w-]+(?:\\s[^>]*)?>(?!.*</).*$|^\\s*(?:(?:[A-Z][A-Za-z0-9_]*[.][a-z]|[.][a-z])[a-z0-9-]*(?::(?:hover|focus|pressed|disabled))?|panel|label|button|list|image|checkbox|combo|input|slider|tabs|tab|&:(?:hover|focus|pressed|disabled)|@media\\s+\\(max-width:\\s*[0-9]+\\))\\s*(?://.*)?$",
     "decreaseIndentPattern": "^\\s*(?:[})]|</[\\w-]+>)"
   }
 }

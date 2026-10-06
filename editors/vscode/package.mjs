@@ -14,7 +14,7 @@ const warning = `<!-- GENERATED FILE — DO NOT EDIT.
      Source: editors/vscode/package.mjs. Regenerate with: mise run package-editor. -->`;
 try {
   await mkdir(join(staging, 'extension'));
-  for (const file of ['package.json', 'README.md', 'language-configuration.json', 'syntaxes', 'snippets', 'icons', 'fileicons']) {
+  for (const file of ['package.json', 'README.md', 'language-configuration.json', 'syntaxes', 'snippets', 'icons', 'fileicons', 'src']) {
     await cp(join(root, file), join(staging, 'extension', file), { recursive: true });
   }
   await cp(resolve(root, '../../LICENSE.md'), join(staging, 'extension', 'LICENSE.md'));
@@ -23,7 +23,7 @@ try {
   await writeFile(join(staging, 'extension.vsixmanifest'), `<?xml version="1.0" encoding="utf-8"?>\n${warning}
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"><Metadata>
 <Identity Language="en-US" Id="kartui" Version="${manifest.version}" Publisher="karty-local"/>
-<DisplayName>KartUI</DisplayName><Description xml:space="preserve">KartUI syntax highlighting and snippets</Description>
+<DisplayName>KartUI</DisplayName><Description xml:space="preserve">KartUI completion, hover help, syntax highlighting and snippets</Description>
 <Properties><Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.85.0"/><Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="ui"/></Properties>
 </Metadata><Installation><InstallationTarget Id="Microsoft.VisualStudio.Code"/></Installation><Dependencies/>
 <Assets><Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true"/></Assets></PackageManifest>`);

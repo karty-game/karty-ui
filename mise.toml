@@ -9,10 +9,13 @@ lint = "mise run lint"
 test = "mise run test"
 
 [tasks.test]
-run = "go test ./..."
+run = "go test -timeout=9s ./..."
 
 [tasks.build]
 run = "go build ./..."
+
+[tasks.bench]
+run = "go test -timeout=9s -run '^$' -bench . -benchmem ./compiler ./codegen"
 
 [tasks.check-editor]
 run = "npm test --prefix editors/vscode"

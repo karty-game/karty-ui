@@ -205,12 +205,12 @@ func TestLayoutRejectsUnknownSlot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, _, err = expandLayouts(
+	_, _, origins, err := expandLayouts(
 		"menu.ui",
-		`<WindowLayout><fragment slot="missing"><label>x</label></fragment></WindowLayout>`,
+		`<WindowLayout><fragment slot="missing"><label>x</label></fragment></WindowLayout>`, styleSource{},
 		map[string]Layout{"WindowLayout": layout},
 	)
-	if err == nil {
+	if err == nil || len(origins) != 0 {
 		t.Fatal("accepted an unknown named slot")
 	}
 }
@@ -536,7 +536,7 @@ style { .badge { position: absolute; top: 12; right: 16; } }`))
 	}
 }
 
-func TestCompileRejectsInvalidStyles(t *testing.T) {
+func TestCompileWarnsAndIgnoresInvalidStyles(t *testing.T) {
 	t.Parallel()
 
 	for _, source := range []string{
@@ -560,8 +560,9 @@ func TestCompileRejectsInvalidStyles(t *testing.T) {
 		`kartui Bad() { <panel><label>x</label></panel> } style { @media (max-width: 480) { label { font-size: 12; } } @media (max-width: 600) { label { font-size: 14; } } }`,
 		`kartui Bad() { <panel><label>x</label></panel> } style { @media (max-width: 480) { @media (max-width: 400) { label { font-size: 12; } } } }`,
 	} {
-		if _, err := Compile("bad.ui", []byte(source)); err == nil {
-			t.Fatalf("accepted invalid style: %s", source)
+		component, err := Compile("bad.ui", []byte(strings.Replace(source, " } style {", " }\nstyle {", 1)))
+		if err != nil || len(component.StyleWarnings()) == 0 {
+			t.Fatalf("style should warn without failing: %s: %v warnings=%v", source, err, component.StyleWarnings())
 		}
 	}
 

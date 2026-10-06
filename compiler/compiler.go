@@ -13,21 +13,29 @@ import (
 	"go/scanner"
 	"go/token"
 	"io"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/karty-game/karty-ui/schema"
 )
 
-const maxPanelAttributes = 3
+const (
+	maxPanelAttributes = 3
+	// The schema permits element depth 15 below the implicit root panel.
+	maxElementDepth = 15
+)
 
 type Parameter struct{ Name, Type string }
 type Binding struct {
-	ID                                               uint32
-	Text, DefaultText, Enabled, Visible, Rows, Click string
-	Child, Props, Key, Loop                          string
+	ID                                                  uint32
+	Text, DefaultText, Enabled, Visible, Rows, Click    string
+	Child, Props, Key, Loop                             string
+	Value, ValueMethod, Change, ChangeType, ChangeField string
 }
 type Component struct {
+	selectorLocations                      map[string]SourceLocation
 	Name, Source, Asset                    string
 	Local                                  bool
 	Composition, ChildFactory, Conditional bool
@@ -48,6 +56,50 @@ type Component struct {
 	parent                                 uint32
 	parents                                []uint32
 	loopDepth                              int
+	styleWarnings                          []Diagnostic
+	panelScope                             string
+	elementScopes                          []string
+	elementLocations                       []SourceLocation
+	origins                                []markupOrigin
+	panelLocation                          SourceLocation
+	currentStyleLocation                   SourceLocation
+	currentStyleIndex                      int
+	styleLocations                         map[int]map[string]SourceLocation
+}
+
+// StaticTemplate returns a strictly validated presentation-only template.
+// Keeping the component also lets build tools report its style diagnostics.
+func (component *Component) StaticTemplate() (ui.Template, error) {
+	source := component.Source
+	if component.Local {
+		return ui.Template{}, fmt.Errorf("%s: level UI cannot contain client setup code: %w", source, ui.ErrTemplate)
+	}
+
+	if component.Back != "" {
+		return ui.Template{}, fmt.Errorf(
+			"%s: dynamic level UI back action requires a client component: %w",
+			source,
+			ui.ErrTemplate,
+		)
+	}
+
+	for _, binding := range component.Bindings {
+		if binding.Text != "" || binding.Rows != "" || binding.Click != "" || binding.Visible != "" || binding.Enabled != "true" ||
+			binding.Value != "" ||
+			binding.Change != "" {
+			return ui.Template{}, fmt.Errorf(
+				"%s: dynamic level UI bindings require a client component; only static level templates are supported yet: %w",
+				source,
+				ui.ErrTemplate,
+			)
+		}
+	}
+
+	if err := component.Template.ValidateComposition(); err != nil {
+		return ui.Template{}, err
+	}
+
+	return component.Template, nil
 }
 
 // Compile accepts one KartUI component with optional Go imports/types and setup.
@@ -61,17 +113,31 @@ func CompileWithTheme(source string, data []byte, theme Theme) (Component, error
 	return compileWithLayouts(source, data, theme, nil)
 }
 
-//nolint:gocognit,gocyclo // One ordered compilation pipeline keeps source attribution and validation together.
+//nolint:gocognit,gocyclo,maintidx // One ordered compilation pipeline keeps source attribution and validation together.
 func compileWithLayouts(source string, data []byte, theme Theme, layouts map[string]Layout) (Component, error) {
 	result := Component{Source: source, Template: ui.Template{Version: 1}}
 	if len(data) > ui.MaxAssetBytes {
 		return result, fmt.Errorf("%s: source too large: %w", source, ui.ErrTemplate)
 	}
 
+	if err := reservedMarkupError(source, string(data)); err != nil {
+		return result, err
+	}
+
 	text := strings.TrimSpace(string(data))
+
+	var styleDocument, markupDocument styleSource
+
 	if single, ok, err := parseSingleFileComponent(source, data); ok {
 		if err != nil {
 			return result, err
+		}
+
+		styleDocument = single.styleDocument
+
+		markupDocument = single.templateDocument
+		for _, warning := range single.styleWarnings {
+			appendStyleWarning(&result.styleWarnings, warning)
 		}
 
 		text, err = single.componentSource(source)
@@ -153,31 +219,56 @@ func compileWithLayouts(source string, data []byte, theme Theme, layouts map[str
 		return result, err
 	}
 
+	if markupDocument.original == "" {
+		markupDocument = sourceDocument(source, string(data), body)
+	}
+
+	if styleDocument.original == "" {
+		styleDocument = sourceDocument(source, string(data), styleText)
+	}
+
+	markupDocument = trimMarkupDocument(markupDocument)
+
 	body, err = result.lowerLoops(body)
 	if err != nil {
-		return result, fmt.Errorf("%s: %w", source, err)
+		return result, locateExpressionFailure(markupDocument, err)
 	}
 
 	body, err = result.lowerConditions(body)
 	if err != nil {
-		return result, fmt.Errorf("%s: %w", source, err)
+		return result, locateExpressionFailure(markupDocument, err)
 	}
 
 	markup, expressions, err := lowerExpressions(body)
 	if err != nil {
-		return result, fmt.Errorf("%s: %w", source, err)
+		return result, locateExpressionFailure(markupDocument, err)
 	}
 
-	markup, layoutStyles, err := expandLayouts(source, markup, layouts)
+	markup, layoutStyles, origins, err := expandLayouts(source, markup, markupDocument, layouts)
+
+	result.origins = origins
 	if err != nil {
 		return result, err
 	}
 
-	styleText = strings.Join(append(layoutStyles, styleText), "\n")
+	styles := styleRules{base: map[string][]styleDeclaration{}, responsive: map[string][]styleDeclaration{}}
 
-	styles, err := parseStyles(source, styleText, theme)
-	if err != nil {
+	for _, layout := range layoutStyles {
+		for _, warning := range layout.warnings {
+			appendStyleWarning(&result.styleWarnings, warning)
+		}
+
+		if err := parseStyleBlocks(layout, 0, len(layout.text), theme, &styles, false); err != nil {
+			return result, err
+		}
+	}
+
+	if err := parseStyleBlocks(styleDocument, 0, len(styleDocument.text), theme, &styles, false); err != nil {
 		return result, err
+	}
+
+	for _, warning := range styles.warnings {
+		appendStyleWarning(&result.styleWarnings, warning)
 	}
 
 	err = result.parseMarkup(markup, expressions)
@@ -217,6 +308,8 @@ func (component *Component) raiseInteractiveHUDSchema() {
 }
 
 func (component *Component) raiseLayoutSchema(usedLayout bool) {
+	component.raiseSizingSchema()
+
 	const layout = ui.StyleBackgroundDisabled | ui.StyleBackgroundImageDisabled |
 		ui.StyleColorHover | ui.StyleColorPressed | ui.StyleColorDisabled |
 		ui.StyleFlexDirection | ui.StyleAlignItems | ui.StyleMinWidth | ui.StyleMaxWidth | ui.StyleMaxHeight |
@@ -224,57 +317,41 @@ func (component *Component) raiseLayoutSchema(usedLayout bool) {
 
 	if component.Template.Panel.Set2 != 0 || component.Template.ResponsivePanel.Set2 != 0 {
 		component.Template.Version = max(component.Template.Version, ui.SchemaInteractionPolish)
-
-		return
 	}
 
 	if component.Template.Panel.Set&(ui.StyleTransitionEnter|ui.StyleTransitionExit) != 0 ||
 		component.Template.ResponsivePanel.Set&(ui.StyleTransitionEnter|ui.StyleTransitionExit) != 0 {
 		component.Template.Version = max(component.Template.Version, ui.SchemaControlTransition)
-
-		return
 	}
 
 	for _, element := range component.Template.Elements {
 		if element.Style.Set2 != 0 || element.ResponsiveStyle.Set2 != 0 {
 			component.Template.Version = max(component.Template.Version, ui.SchemaInteractionPolish)
-
-			return
 		}
 
 		if element.Kind == "image" {
 			component.Template.Version = max(component.Template.Version, ui.SchemaVisualHierarchy)
-
-			return
 		}
 
 		if element.Style.Set&(ui.StyleTextAlign|ui.StyleFontFamily) != 0 ||
 			element.ResponsiveStyle.Set&(ui.StyleTextAlign|ui.StyleFontFamily) != 0 {
 			component.Template.Version = max(component.Template.Version, ui.SchemaVisualHierarchy)
-
-			return
 		}
 
 		if element.Style.Set&ui.StyleTransitionDuration != 0 ||
 			element.ResponsiveStyle.Set&ui.StyleTransitionDuration != 0 {
 			component.Template.Version = max(component.Template.Version, ui.SchemaControlTransition)
-
-			return
 		}
 	}
 
 	if usedLayout || component.Template.Panel.Set&(layout|ui.StyleMinHeight) != 0 {
 		component.Template.Version = max(component.Template.Version, ui.SchemaLayout)
-
-		return
 	}
 
 	for _, element := range component.Template.Elements {
 		layoutMinHeight := element.Kind != "button" && element.Kind != "list" && element.Style.Set&ui.StyleMinHeight != 0
 		if element.Kind == "panel" || element.Parent != 0 || element.Style.Set&layout != 0 || layoutMinHeight {
 			component.Template.Version = max(component.Template.Version, ui.SchemaLayout)
-
-			return
 		}
 	}
 }
@@ -325,12 +402,12 @@ func lowerExpressions(body string) (string, map[string]string, error) {
 		}
 
 		if end < 0 {
-			return "", nil, fmt.Errorf("unclosed Go expression: %w", ui.ErrTemplate)
+			return "", nil, &expressionError{fragment: body[start:], cause: fmt.Errorf("unclosed Go expression: %w", ui.ErrTemplate)}
 		}
 
 		expression := strings.TrimSpace(body[start+1 : start+end])
 		if _, err := parser.ParseExpr(expression); err != nil {
-			return "", nil, err
+			return "", nil, &expressionError{fragment: body[start : start+end+1], cause: err}
 		}
 
 		key := "kartyExpression" + strconv.Itoa(len(expressions))
@@ -344,6 +421,8 @@ func lowerExpressions(body string) (string, map[string]string, error) {
 		} else {
 			output.WriteString(key)
 		}
+
+		output.WriteString(strings.Repeat("\n", strings.Count(body[start:start+end+1], "\n")))
 
 		body = body[start+end+1:]
 	}
@@ -372,18 +451,25 @@ func (component *Component) parseMarkup(markup string, expressions map[string]st
 
 		switch node := node.(type) {
 		case xml.StartElement:
+			node, origin, originErr := component.consumeOrigin(node)
+			if originErr != nil {
+				return originErr
+			}
+
+			component.currentStyleLocation = origin.location
+
 			if closed || node.Name.Space != "" {
-				return ui.ErrTemplate
+				return sourceError(origin.location, "unexpected or namespaced element", ui.ErrTemplate)
 			}
 
 			if len(open) > 0 && open[len(open)-1] != "panel" && open[len(open)-1] != "_kartyLoop" &&
-				open[len(open)-1] != "_kartyIf" {
-				return fmt.Errorf("only panels can contain controls: %w", ui.ErrTemplate)
+				open[len(open)-1] != "_kartyIf" && open[len(open)-1] != "tabs" && open[len(open)-1] != "tab" {
+				return sourceError(origin.location, "only panels and tabs can contain controls", ui.ErrTemplate)
 			}
 
 			depth++
 
-			if err := component.startComposition(node, depth, expressions); err != nil {
+			if err := component.startLocatedComposition(node, depth, origin, expressions); err != nil {
 				return err
 			}
 
@@ -405,7 +491,7 @@ func (component *Component) parseMarkup(markup string, expressions map[string]st
 				component.conditionDepth = 0
 			}
 
-			if node.Name.Local == "panel" && depth > 1 {
+			if isControlContainer(node.Name.Local) && depth > 1 {
 				if len(component.parents) == 0 {
 					return ui.ErrTemplate
 				}
@@ -419,8 +505,8 @@ func (component *Component) parseMarkup(markup string, expressions map[string]st
 				closed = true
 			}
 		case xml.CharData:
-			if err := component.textContent(string(node), expressions); err != nil {
-				return err
+			if err := component.textToken(string(node), open, expressions); err != nil {
+				return sourceError(component.currentStyleLocation, "invalid element text", err)
 			}
 		case xml.Comment:
 		default:
@@ -483,7 +569,12 @@ func (component *Component) startComposition(node xml.StartElement, depth int, e
 	return component.startElement(node, depth, expressions)
 }
 
+//nolint:gocognit // One bounded element collects attributes before schema validation.
 func (component *Component) addElement(node xml.StartElement, expressions map[string]string) error {
+	if len(component.Bindings) >= ui.MaxElements || len(component.parents) >= maxElementDepth {
+		return fmt.Errorf("element count or depth exceeds template limits: %w", ui.ErrTemplate)
+	}
+
 	if ast.IsExported(node.Name.Local) {
 		return component.addChild(node, expressions)
 	}
@@ -496,6 +587,8 @@ func (component *Component) addElement(node xml.StartElement, expressions map[st
 	binding := Binding{ID: identifier, Enabled: "true"}
 	binding.Visible = component.activeCondition
 
+	initializeWidget(&element)
+
 	seen := map[string]bool{}
 	class := ""
 
@@ -506,9 +599,17 @@ func (component *Component) addElement(node xml.StartElement, expressions map[st
 
 		seen[attr.Name.Local] = true
 
+		if handled, err := widgetAttribute(&element, &binding, attr, expressions); handled || err != nil {
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
 		if attr.Name.Local == "class" {
 			if !validCSSName(attr.Value) {
-				return ui.ErrTemplate
+				return fmt.Errorf("class requires one static identifier; multiple classes are unsupported: %w", ui.ErrTemplate)
 			}
 
 			class = attr.Value
@@ -534,10 +635,20 @@ func (component *Component) addElement(node xml.StartElement, expressions map[st
 		}
 	}
 
-	if (element.Kind == "list") != (binding.Rows != "") ||
+	if (element.Kind == "list" || element.Kind == "combo") != (binding.Rows != "") ||
 		(element.Kind == "label" && binding.Click != "") ||
 		(element.Kind == "panel" && (binding.Click != "" || binding.Rows != "" || binding.Enabled != "true")) {
 		return ui.ErrTemplate
+	}
+
+	if err := validateWidgetBinding(element, binding); err != nil {
+		return err
+	}
+
+	setChangeType(element.Kind, &binding)
+
+	if isNewWidget(element.Kind) || element.Tooltip != "" {
+		component.Template.Version = max(component.Template.Version, ui.SchemaWidgets)
 	}
 
 	component.Template.Elements = append(component.Template.Elements, element)
@@ -553,7 +664,7 @@ func (component *Component) startElement(node xml.StartElement, depth int, expre
 			return err
 		}
 
-		if node.Name.Local == "panel" {
+		if isControlContainer(node.Name.Local) {
 			component.parents = append(component.parents, component.parent)
 			component.parent = component.Template.Elements[len(component.Template.Elements)-1].ID
 		}
@@ -606,6 +717,7 @@ func (component *Component) startElement(node xml.StartElement, depth int, expre
 }
 
 func (component *Component) applyStyles(rules styleRules) error {
+	component.selectorLocations = rules.locations
 	if err := component.applyBaseStyles(rules.base, rules.responsive); err != nil {
 		return err
 	}
@@ -614,131 +726,173 @@ func (component *Component) applyStyles(rules styleRules) error {
 		return err
 	}
 
+	component.currentStyleIndex = 0
+	component.currentStyleLocation = component.panelLocation
+	component.Template.Panel = component.cleanStyleDependencies(component.Template.Panel, "root")
+
+	component.currentStyleIndex = -1
+
+	component.Template.ResponsivePanel = component.cleanStyleDependencies(component.Template.ResponsivePanel, "root")
+	for index := range component.Template.Elements {
+		element := &component.Template.Elements[index]
+		component.currentStyleIndex = index + 1
+		component.currentStyleLocation = component.elementLocations[index]
+		element.Style = component.cleanStyleDependencies(element.Style, element.Kind)
+		component.currentStyleIndex = -(index + responsiveIndexOffset)
+		element.ResponsiveStyle = component.cleanStyleDependencies(element.ResponsiveStyle, element.Kind)
+	}
+
+	if !component.hasResponsiveStyle() {
+		component.Template.ResponsiveMaxWidth = 0
+	}
+
 	component.raiseStyleSchema(len(rules.base) > 0 || len(rules.responsive) > 0)
 
 	return nil
 }
 
-func (component *Component) applyBaseStyles(base, responsive map[string]ui.Style) error {
+func styleTargetSelectors(kind, class, scope string) []string {
+	prefix := ""
+	if scope != "" {
+		prefix = scope + "/"
+	}
+
+	selectors := []string{prefix + kind}
+	if class != "" {
+		selectors = append(selectors, prefix+"."+class)
+	}
+
+	return selectors
+}
+
+func (component *Component) applyBaseStyles(base, responsive map[string][]styleDeclaration) error {
 	used := map[string]bool{}
+	component.currentStyleIndex = 0
+	component.currentStyleLocation = component.panelLocation
 
-	if style, exists := base["panel"]; exists {
-		component.Template.Panel = mergeStyle(component.Template.Panel, style)
-		used["panel"] = true
-	}
-
-	if component.panelClass != "" {
-		selector := "." + component.panelClass
-
-		style, exists := base[selector]
-		_, responsiveExists := responsive[selector]
-
-		if !exists && !responsiveExists {
-			return fmt.Errorf("class %s has no style rule: %w", component.panelClass, ui.ErrTemplate)
-		}
-
-		if exists {
-			component.Template.Panel = mergeStyle(component.Template.Panel, style)
-			used[selector] = true
-		}
-	}
-
+	component.Template.Panel = component.applyTargetStyles(
+		component.Template.Panel,
+		"root",
+		styleTargetSelectors("panel", component.panelClass, component.panelScope),
+		base,
+		responsive,
+		used,
+	)
 	for index := range component.Template.Elements {
 		element := &component.Template.Elements[index]
-		if style, exists := base[element.Kind]; exists {
-			element.Style = mergeStyle(element.Style, style)
-			used[element.Kind] = true
-		}
-
-		if index < len(component.elementClasses) && component.elementClasses[index] != "" {
-			selector := "." + component.elementClasses[index]
-
-			style, exists := base[selector]
-			_, responsiveExists := responsive[selector]
-
-			if !exists && !responsiveExists {
-				return fmt.Errorf("class %s has no style rule: %w", component.elementClasses[index], ui.ErrTemplate)
-			}
-
-			if exists {
-				element.Style = mergeStyle(element.Style, style)
-				used[selector] = true
-			}
-		}
+		component.currentStyleIndex = index + 1
+		component.currentStyleLocation = component.elementLocations[index]
+		element.Style = component.applyTargetStyles(
+			element.Style,
+			element.Kind,
+			styleTargetSelectors(element.Kind, component.elementClasses[index], component.elementScopes[index]),
+			base,
+			responsive,
+			used,
+		)
 	}
 
-	for selector := range base {
-		if !used[selector] && strings.HasPrefix(selector, ".") {
-			return fmt.Errorf("unused style selector %s: %w", selector, ui.ErrTemplate)
-		}
-	}
+	component.warnUnusedStyles(base, used, "style")
 
 	return nil
 }
 
-func (component *Component) applyResponsiveStyles(maxWidth uint16, rules map[string]ui.Style) error {
+func (component *Component) applyTargetStyles(
+	base ui.Style,
+	kind string,
+	selectors []string,
+	rules, other map[string][]styleDeclaration,
+	used map[string]bool,
+) ui.Style {
+	for _, selector := range selectors {
+		declarations, exists := rules[selector]
+		if exists {
+			base = component.mergeStyleDeclarations(base, declarations, kind)
+			used[selector] = true
+
+			continue
+		}
+
+		if other == nil {
+			continue
+		}
+
+		if _, responsiveExists := other[selector]; !responsiveExists && strings.Contains(selector, ".") {
+			appendStyleWarning(
+				&component.styleWarnings,
+				Diagnostic{
+					SourceLocation: component.currentStyleLocation,
+					Message:        fmt.Sprintf("class %s ignored: no style rule", displayStyleSelector(selector)),
+				},
+			)
+		}
+	}
+
+	return base
+}
+
+func (component *Component) warnUnusedStyles(rules map[string][]styleDeclaration, used map[string]bool, label string) {
+	for _, selector := range slices.Sorted(maps.Keys(rules)) {
+		if used[selector] || !strings.Contains(selector, ".") {
+			continue
+		}
+
+		location := component.selectorLocations[selector]
+
+		appendStyleWarning(
+			&component.styleWarnings,
+			Diagnostic{
+				SourceLocation: location,
+				Message:        fmt.Sprintf("%s selector %s ignored: no matching element", label, displayStyleSelector(selector)),
+			},
+		)
+	}
+}
+
+func (component *Component) applyResponsiveStyles(maxWidth uint16, rules map[string][]styleDeclaration) error {
 	if maxWidth == 0 {
 		return nil
 	}
 
 	component.Template.ResponsiveMaxWidth = maxWidth
 	used := map[string]bool{}
-	responsivePanel := component.Template.Panel
-	panelChanged := false
+	component.currentStyleIndex = -1
+	component.currentStyleLocation = component.panelLocation
 
-	if style, exists := rules["panel"]; exists {
-		responsivePanel = mergeStyle(responsivePanel, style)
-		used["panel"], panelChanged = true, true
-	}
-
-	if component.panelClass != "" {
-		selector := "." + component.panelClass
-		if style, exists := rules[selector]; exists {
-			responsivePanel = mergeStyle(responsivePanel, style)
-			used[selector], panelChanged = true, true
-		}
-	}
-
-	if panelChanged {
-		component.Template.ResponsivePanel = responsivePanel
+	panel := component.applyTargetStyles(
+		component.Template.Panel,
+		"root",
+		styleTargetSelectors("panel", component.panelClass, component.panelScope),
+		rules,
+		nil,
+		used,
+	)
+	if panel != component.Template.Panel {
+		component.Template.ResponsivePanel = panel
 	}
 
 	for index := range component.Template.Elements {
-		component.applyResponsiveElement(index, rules, used)
-	}
+		element := &component.Template.Elements[index]
+		component.currentStyleIndex = -(index + responsiveIndexOffset)
+		component.currentStyleLocation = component.elementLocations[index]
 
-	for selector := range rules {
-		if !used[selector] && strings.HasPrefix(selector, ".") {
-			return fmt.Errorf("unused responsive style selector %s: %w", selector, ui.ErrTemplate)
+		style := component.applyTargetStyles(
+			element.Style,
+			element.Kind,
+			styleTargetSelectors(element.Kind, component.elementClasses[index], component.elementScopes[index]),
+			rules,
+			nil,
+			used,
+		)
+		if style != element.Style {
+			element.ResponsiveStyle = style
 		}
 	}
 
+	component.warnUnusedStyles(rules, used, "responsive style")
 	component.Template.Version = max(component.Template.Version, ui.SchemaResponsive)
 
 	return nil
-}
-
-func (component *Component) applyResponsiveElement(index int, rules map[string]ui.Style, used map[string]bool) {
-	element := &component.Template.Elements[index]
-	responsiveStyle := element.Style
-	changed := false
-
-	if style, exists := rules[element.Kind]; exists {
-		responsiveStyle = mergeStyle(responsiveStyle, style)
-		used[element.Kind], changed = true, true
-	}
-
-	if index < len(component.elementClasses) && component.elementClasses[index] != "" {
-		selector := "." + component.elementClasses[index]
-		if style, exists := rules[selector]; exists {
-			responsiveStyle = mergeStyle(responsiveStyle, style)
-			used[selector], changed = true, true
-		}
-	}
-
-	if changed {
-		element.ResponsiveStyle = responsiveStyle
-	}
 }
 
 func (component *Component) raiseStyleSchema(styled bool) {
@@ -763,6 +917,18 @@ func (component *Component) raiseStyleSchema(styled bool) {
 	}
 }
 
+func (component *Component) textToken(value string, open []string, expressions map[string]string) error {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+
+	if len(open) == 0 || (open[len(open)-1] != "label" && open[len(open)-1] != "button" && open[len(open)-1] != "checkbox") {
+		return fmt.Errorf("text must be inside a label, button or checkbox: %w", ui.ErrTemplate)
+	}
+
+	return component.textContent(value, expressions)
+}
+
 func (component *Component) textContent(value string, expressions map[string]string) error {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -774,7 +940,7 @@ func (component *Component) textContent(value string, expressions map[string]str
 		return ui.ErrTemplate
 	}
 
-	if kind := component.Template.Elements[index].Kind; kind != "label" && kind != "button" {
+	if kind := component.Template.Elements[index].Kind; kind != "label" && kind != "button" && kind != "checkbox" {
 		return ui.ErrTemplate
 	}
 
@@ -783,6 +949,10 @@ func (component *Component) textContent(value string, expressions map[string]str
 	}
 
 	if expression, ok := expressions[value]; ok {
+		if component.Template.Elements[index].Kind == "checkbox" {
+			return fmt.Errorf("checkbox label must be literal: %w", ui.ErrTemplate)
+		}
+
 		component.Bindings[index].Text = expression
 
 		return nil
@@ -814,29 +984,7 @@ func DecodeSourceWithTheme(source string, data []byte, theme Theme) (ui.Template
 		return ui.Template{}, err
 	}
 
-	if component.Local {
-		return ui.Template{}, fmt.Errorf("%s: level UI cannot contain client setup code: %w", source, ui.ErrTemplate)
-	}
-
-	if component.Back != "" {
-		return ui.Template{}, fmt.Errorf(
-			"%s: dynamic level UI back action requires a client component: %w",
-			source,
-			ui.ErrTemplate,
-		)
-	}
-
-	for _, binding := range component.Bindings {
-		if binding.Text != "" || binding.Rows != "" || binding.Click != "" || binding.Enabled != "true" {
-			return ui.Template{}, fmt.Errorf(
-				"%s: dynamic level UI bindings require a client component; only static level templates are supported yet: %w",
-				source,
-				ui.ErrTemplate,
-			)
-		}
-	}
-
-	return component.Template, nil
+	return component.StaticTemplate()
 }
 
 func (component *Component) parameters(source string, function *ast.FuncDecl) error {
@@ -851,7 +999,7 @@ func (component *Component) parameters(source string, function *ast.FuncDecl) er
 		kind := output.String()
 		if !component.Local {
 			switch kind {
-			case "string", "bool", "[]UIRow", "func()", "func(uint32)":
+			case "string", "bool", "[]UIRow", "func()", "func(uint32)", "int32", "uint32", "func(bool)", "func(string)", "func(int32)":
 			default:
 				return fmt.Errorf("%s: unsupported presentation parameter type %s: %w", source, kind, ui.ErrTemplate)
 			}

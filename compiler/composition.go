@@ -33,19 +33,22 @@ func (component *Component) lowerConditions(body string) (string, error) {
 
 		condition := strings.TrimSpace(body[match[2]:match[3]])
 		if _, err := parser.ParseExpr(condition); err != nil {
-			return "", err
+			return "", &expressionError{fragment: body[match[0]:match[1]], cause: err}
 		}
 
 		opening := strings.LastIndex(body[:match[1]], "{")
 
 		end, err := expressionEnd(body[opening:])
 		if err != nil {
-			return "", err
+			return "", &expressionError{fragment: body[match[0]:match[1]], cause: err}
 		}
 
 		inside := body[opening+1 : opening+end]
 		if conditionLine.MatchString(inside) {
-			return "", fmt.Errorf("nest conditions through child components: %w", ui.ErrTemplate)
+			return "", &expressionError{
+				fragment: body[match[0]:match[1]],
+				cause:    fmt.Errorf("nest conditions through child components: %w", ui.ErrTemplate),
+			}
 		}
 
 		index := len(component.conditions)
@@ -63,8 +66,10 @@ func (component *Component) lowerConditions(body string) (string, error) {
 
 			elseEnd, elseErr := expressionEnd(trimmed[elseOpening:])
 			if elseErr != nil {
-				return "", elseErr
+				return "", &expressionError{fragment: "else {", cause: elseErr}
 			}
+
+			output.WriteString(strings.Repeat("\n", strings.Count(remainder[:len(remainder)-len(trimmed)], "\n")))
 
 			elseIndex := len(component.conditions)
 			component.conditions = append(component.conditions, "!("+condition+")")
@@ -99,24 +104,30 @@ func (component *Component) lowerLoops(body string) (string, error) {
 
 		parsed, err := parser.ParseFile(token.NewFileSet(), component.Source, "package main\nfunc f(){ for "+header+" {} }", 0)
 		if err != nil {
-			return "", err
+			return "", &expressionError{fragment: body[match[0]:match[1]], cause: err}
 		}
 
 		statement, ok := parsed.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.RangeStmt)
 		if !ok || statement.Tok != token.DEFINE {
-			return "", fmt.Errorf("expected for ... := range expression: %w", ui.ErrTemplate)
+			return "", &expressionError{
+				fragment: body[match[0]:match[1]],
+				cause:    fmt.Errorf("expected for ... := range expression: %w", ui.ErrTemplate),
+			}
 		}
 
 		opening := strings.LastIndex(body[:match[1]], "{")
 
 		end, err := expressionEnd(body[opening:])
 		if err != nil {
-			return "", err
+			return "", &expressionError{fragment: body[match[0]:match[1]], cause: err}
 		}
 
 		inside := body[opening+1 : opening+end]
 		if loopLine.MatchString(inside) {
-			return "", fmt.Errorf("nest loops through child components: %w", ui.ErrTemplate)
+			return "", &expressionError{
+				fragment: body[match[0]:match[1]],
+				cause:    fmt.Errorf("nest loops through child components: %w", ui.ErrTemplate),
+			}
 		}
 
 		index := len(component.loops)
@@ -132,6 +143,10 @@ func (component *Component) lowerLoops(body string) (string, error) {
 }
 
 func (component *Component) addChild(node xml.StartElement, expressions map[string]string) error {
+	if len(component.Bindings) >= ui.MaxElements || len(component.parents) >= maxElementDepth {
+		return fmt.Errorf("element count or depth exceeds template limits: %w", ui.ErrTemplate)
+	}
+
 	binding := Binding{
 		ID: uint32(len(component.Bindings) + 1), Enabled: "true", Visible: component.activeCondition,
 		Child: node.Name.Local, Loop: component.activeLoop,

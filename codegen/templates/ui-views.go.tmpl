@@ -28,15 +28,19 @@ func (game Game) Show{{.Name}}(project func() {{.Name}}Props) *UI {
   {{if .Visible}}view.SetVisible({{.ID}}, {{.Visible}})
   {{end}}
   {{if .Rows}}view.Rows({{.ID}}, {{.Rows}})
-  {{else if .Text}}view.Set({{.ID}}, {{.Text}}, {{.Enabled}})
-  {{else if ne .Enabled "true"}}view.Set({{.ID}}, {{printf "%q" .DefaultText}}, {{.Enabled}})
+  {{end}}
+ {{if .Value}}view.{{.ValueMethod}}({{.ID}},{{.Value}},{{.Enabled}})
+ {{else if .Text}}view.Set({{.ID}}, {{.Text}}, {{.Enabled}})
+  {{else if and (not .Rows) (ne .Enabled "true")}}view.Set({{.ID}}, {{printf "%q" .DefaultText}}, {{.Enabled}})
   {{end}}{{end}}
  }, func(action UIAction) {
   {{range .Parameters}}{{.Name}} := snapshot.{{.Name}}; _ = {{.Name}}
   {{end}}
   {{if .Back}}if action.Element == UIElement({{$.BackElement}}) { var callback func() = {{.Back}}; if callback != nil { callback() }; return }
   {{end}}switch action.Element {
-  {{range .Bindings}}{{if .Click}}case {{.ID}}:
+  {{range .Bindings}}{{if .Change}}case {{.ID}}:
+ var callback func({{.ChangeType}}) = {{.Change}}; if callback != nil { callback(action.{{.ChangeField}}) }
+ {{else if .Click}}case {{.ID}}:
    {{if .Rows}}var callback func(uint32) = {{.Click}}; if callback != nil { callback(action.Row) }
    {{else}}var callback func() = {{.Click}}; if callback != nil { callback() }
    {{end}}

@@ -2,6 +2,8 @@ package uicompiler
 
 import (
 	"fmt"
+	"go/ast"
+	"go/token"
 	"slices"
 	"strconv"
 	"strings"
@@ -205,55 +207,59 @@ func splitStyle(text string) (string, string, error) {
 }
 
 type styleRules struct {
-	base               map[string]ui.Style
-	responsive         map[string]ui.Style
+	base               map[string][]styleDeclaration
+	responsive         map[string][]styleDeclaration
 	responsiveMaxWidth uint16
+	warnings           []Diagnostic
+	locations          map[string]SourceLocation
 }
 
-func parseStyles(source, text string, theme Theme) (styleRules, error) {
-	rules := styleRules{base: map[string]ui.Style{}, responsive: map[string]ui.Style{}}
-	if err := parseStyleBlocks(source, text, theme, &rules, false); err != nil {
-		return styleRules{}, err
+func parseStyleBlocks(document styleSource, start, end int, theme Theme, rules *styleRules, responsive bool) error {
+	if len(document.lineStarts) == 0 {
+		document.lineStarts = sourceLineStarts(document.original)
 	}
 
-	return rules, nil
-}
+	for start < end {
+		text := document.text[start:end]
 
-func parseStyleBlocks(source, text string, theme Theme, rules *styleRules, responsive bool) error {
-	for strings.TrimSpace(text) != "" {
-		text = strings.TrimSpace(text)
-		open := strings.IndexByte(text, '{')
-
-		if open < 1 {
-			return ui.ErrTemplate
+		start += len(text) - len(strings.TrimLeft(text, " \t\r\n"))
+		if start == end {
+			break
 		}
 
-		end, err := styleBlockEnd(text, open)
+		text = document.text[start:end]
+
+		open := strings.IndexByte(text, '{')
+		if open < 1 {
+			return sourceError(document.position(start), "expected selector { declarations }", ui.ErrTemplate)
+		}
+
+		closeAt, err := styleBlockEnd(text, open)
 		if err != nil {
-			return err
+			return sourceError(document.position(start), "unclosed style block", err)
 		}
 
 		header := strings.TrimSpace(text[:open])
-		body := text[open+1 : end]
-
-		if err := parseStyleBlock(source, header, body, theme, rules, responsive); err != nil {
+		if err := parseStyleBlock(document, header, start, start+open+1, start+closeAt, theme, rules, responsive); err != nil {
 			return err
 		}
 
-		text = text[end+1:]
+		start += closeAt + 1
 	}
 
 	return nil
 }
 
 func parseStyleBlock(
-	source, header, body string,
+	document styleSource,
+	header string,
+	headerStart, bodyStart, bodyEnd int,
 	theme Theme,
 	rules *styleRules,
 	responsive bool,
 ) error {
 	if strings.HasPrefix(header, "@media") {
-		return parseResponsiveBlock(source, header, body, theme, rules, responsive)
+		return parseResponsiveBlock(document, header, headerStart, bodyStart, bodyEnd, theme, rules, responsive)
 	}
 
 	target := rules.base
@@ -261,31 +267,52 @@ func parseStyleBlock(
 		target = rules.responsive
 	}
 
-	return parseStyleRule(source, header, body, theme, target)
+	return parseStyleRule(document, header, headerStart, bodyStart, bodyEnd, theme, target, rules)
 }
 
 func parseResponsiveBlock(
-	source, header, body string,
+	document styleSource,
+	header string,
+	headerStart, bodyStart, bodyEnd int,
 	theme Theme,
 	rules *styleRules,
 	nested bool,
 ) error {
+	location := document.position(headerStart)
 	if nested {
-		return fmt.Errorf("%s: nested media queries are unsupported: %w", source, ui.ErrTemplate)
+		appendStyleWarning(
+			&rules.warnings,
+			Diagnostic{SourceLocation: location, Message: "nested media query ignored: unsupported nesting"},
+		)
+
+		return nil
 	}
 
 	maxWidth, err := parseMediaMaxWidth(header)
 	if err != nil {
-		return fmt.Errorf("%s: %w", source, err)
+		appendStyleWarning(
+			&rules.warnings,
+			Diagnostic{SourceLocation: location, Message: fmt.Sprintf("media query %q ignored: %v", header, err)},
+		)
+
+		return nil
 	}
 
 	if rules.responsiveMaxWidth != 0 && rules.responsiveMaxWidth != maxWidth {
-		return fmt.Errorf("%s: use one responsive max-width per component: %w", source, ui.ErrTemplate)
+		appendStyleWarning(
+			&rules.warnings,
+			Diagnostic{
+				SourceLocation: location,
+				Message:        fmt.Sprintf("media query %q ignored: use one responsive max-width per component", header),
+			},
+		)
+
+		return nil
 	}
 
 	rules.responsiveMaxWidth = maxWidth
 
-	return parseStyleBlocks(source, body, theme, rules, true)
+	return parseStyleBlocks(document, bodyStart, bodyEnd, theme, rules, true)
 }
 
 func styleBlockEnd(text string, open int) (int, error) {
@@ -322,36 +349,116 @@ func parseMediaMaxWidth(header string) (uint16, error) {
 	return uint16(parsed), nil
 }
 
-func parseStyleRule(source, selector, body string, theme Theme, rules map[string]ui.Style) error {
+func parseStyleRule(
+	document styleSource,
+	selector string,
+	selectorStart, bodyStart, bodyEnd int,
+	theme Theme,
+	target map[string][]styleDeclaration,
+	rules *styleRules,
+) error {
 	baseSelector, state, valid := splitSelector(selector)
 	if !valid {
-		return fmt.Errorf("%s: invalid style selector %q: %w", source, selector, ui.ErrTemplate)
+		appendStyleWarning(
+			&rules.warnings,
+			Diagnostic{
+				SourceLocation: document.position(selectorStart),
+				Message:        fmt.Sprintf("style selector %q ignored: unsupported selector", selector),
+			},
+		)
+
+		return nil
 	}
 
-	properties, err := declarations(body)
-	if err != nil {
-		return fmt.Errorf("%s: %w", source, err)
+	key, valid := scopedSelectorKey(document.scope, baseSelector)
+	if !valid {
+		appendStyleWarning(
+			&rules.warnings,
+			Diagnostic{
+				SourceLocation: document.position(selectorStart),
+				Message:        "qualified layout overrides belong in the consuming component",
+			},
+		)
+
+		return nil
 	}
 
-	style := rules[baseSelector]
+	if _, exists := target[key]; !exists {
+		target[key] = nil
+	}
 
-	for property, value := range properties {
-		property, err = stateProperty(property, state)
+	if rules.locations == nil {
+		rules.locations = map[string]SourceLocation{}
+	}
+
+	rules.locations[key] = document.position(selectorStart)
+	seen := map[string]bool{}
+
+	offset := bodyStart
+	for part := range strings.SplitSeq(document.text[bodyStart:bodyEnd], ";") {
+		propertyOffset := offset + len(part) - len(strings.TrimLeft(part, " \t\r\n"))
+		offset += len(part) + 1
+
+		raw := strings.TrimSpace(part)
+		if raw == "" {
+			continue
+		}
+
+		property, value, hasValue := strings.Cut(raw, ":")
+		property, value = canonicalStyleProperty(strings.TrimSpace(property)), strings.TrimSpace(value)
+
+		declaration := styleDeclaration{
+			source:   document.source,
+			selector: selector,
+			property: property,
+			value:    value,
+			location: document.position(propertyOffset),
+		}
+		if !hasValue || !validCSSName(property) {
+			declaration.warn(&rules.warnings, "expected property: value")
+
+			continue
+		}
+
+		if seen[property] {
+			declaration.warn(&rules.warnings, "duplicate property")
+
+			continue
+		}
+
+		resolved, err := stateProperty(property, state)
 		if err != nil {
-			return fmt.Errorf("%s: selector %s: %w", source, selector, err)
+			declaration.warn(&rules.warnings, err.Error())
+
+			continue
 		}
 
-		if err := applyStyleProperty(&style, property, value, theme); err != nil {
-			return fmt.Errorf("%s: %w", source, err)
+		if err := applyStyleProperty(&declaration.style, resolved, value, theme); err != nil {
+			declaration.warn(&rules.warnings, err.Error())
+
+			continue
 		}
+
+		if !stylePropertyValid(declaration.style, "root") && !stylePropertyValid(declaration.style, "panel") &&
+			!stylePropertyValid(
+				declaration.style,
+				"button",
+			) && !stylePropertyValid(declaration.style, "image") && !stylePropertyValid(declaration.style, "label") {
+			declaration.warn(&rules.warnings, "value is outside the supported range")
+
+			continue
+		}
+
+		seen[property] = true
+
+		target[key] = append(target[key], declaration)
 	}
-
-	rules[baseSelector] = style
 
 	return nil
 }
 
 func applyStyleProperty(style *ui.Style, property, value string, theme Theme) error {
+	property = canonicalStyleProperty(property)
 	if !supportedStyleProperty(property) {
 		return fmt.Errorf("unknown style property %s: %w", property, ui.ErrTemplate)
 	}
@@ -376,7 +483,12 @@ func applyStyleProperty(style *ui.Style, property, value string, theme Theme) er
 		}
 	}
 
-	return setStyle(style, property, value)
+	err := setStyle(style, property, value)
+	if err != nil && (property == "width" || property == "height") {
+		return fmt.Errorf("expected auto, 0..2048 logical pixels or 0..100%% with up to two decimal places: %w", err)
+	}
+
+	return err
 }
 
 // supportedStyleProperty reports the complete public CSS-like declaration
@@ -395,6 +507,7 @@ func supportedStylePropertyNames() []string {
 		"font-size", "font-family", "text-align",
 		"image", "image-fit", "icon", "icon-position", "icon-size", "icon-gap", "tint",
 		"min-width", "min-height", "max-width", "max-height", "flex-grow", "margin",
+		"width", "height",
 		"transition-duration", "transition-delay", "transition-easing", "transition-enter", "transition-exit",
 	}
 }
@@ -429,28 +542,6 @@ func setStyleImage(style *ui.Style, property string, image ui.Image) error {
 	return nil
 }
 
-func declarations(text string) (map[string]string, error) {
-	result := map[string]string{}
-
-	for declaration := range strings.SplitSeq(text, ";") {
-		declaration = strings.TrimSpace(declaration)
-		if declaration == "" {
-			continue
-		}
-
-		name, value, ok := strings.Cut(declaration, ":")
-
-		name, value = strings.TrimSpace(name), strings.TrimSpace(value)
-		if !ok || !validCSSName(name) || value == "" || result[name] != "" {
-			return nil, ui.ErrTemplate
-		}
-
-		result[name] = value
-	}
-
-	return result, nil
-}
-
 func validCSSName(value string) bool {
 	if value == "" {
 		return false
@@ -466,16 +557,49 @@ func validCSSName(value string) bool {
 }
 
 func validSelector(value string) bool {
+	if scope, class, qualified := strings.Cut(value, "."); qualified && scope != "" {
+		return token.IsIdentifier(scope) && ast.IsExported(scope) && validCSSName(class)
+	}
+
 	if strings.HasPrefix(value, ".") {
 		return validCSSName(value[1:])
 	}
 
 	switch value {
-	case "panel", "label", "button", "list", "image":
+	case "panel", "label", "button", "list", "image", "checkbox", "combo", "input", "slider", "tabs", "tab":
 		return true
 	}
 
 	return false
+}
+
+func scopedSelectorKey(scope, selector string) (string, bool) {
+	if owner, class, qualified := strings.Cut(selector, "."); qualified && owner != "" {
+		if scope != "" {
+			return "", false
+		}
+
+		return owner + "/." + class, true
+	}
+
+	if scope != "" {
+		return scope + "/" + selector, true
+	}
+
+	return selector, true
+}
+
+func displayStyleSelector(key string) string {
+	scope, selector, qualified := strings.Cut(key, "/")
+	if !qualified {
+		return key
+	}
+
+	if strings.HasPrefix(selector, ".") {
+		return scope + selector
+	}
+
+	return scope + " " + selector
 }
 
 func splitSelector(value string) (string, string, bool) {
@@ -509,6 +633,23 @@ func stateProperty(property, state string) (string, error) {
 
 //nolint:gocognit,gocyclo,maintidx // Typed property decoding is intentionally centralized and exhaustive.
 func setStyle(style *ui.Style, property, value string) error {
+	if property == "width" || property == "height" {
+		length, err := parseStyleLength(value)
+		if err != nil {
+			return err
+		}
+
+		if property == "width" {
+			style.Set2 |= ui.Style2Width
+			style.Width = length
+		} else {
+			style.Set2 |= ui.Style2Height
+			style.Height = length
+		}
+
+		return nil
+	}
+
 	const (
 		maxFlexGrow = 16
 		maxMargin   = 256
@@ -719,6 +860,10 @@ func setStyle(style *ui.Style, property, value string) error {
 		return nil
 	}
 
+	if property != "flex-grow" && !strings.HasPrefix(property, "transition-") {
+		value = strings.TrimSuffix(value, "px")
+	}
+
 	parsed, err := strconv.ParseUint(value, 10, 16)
 	if err != nil || parsed > 2048 {
 		return fmt.Errorf("invalid %s value %q: %w", property, value, ui.ErrTemplate)
@@ -819,6 +964,14 @@ func parseColor(value string) (uint32, error) {
 
 //nolint:gocognit,gocyclo,maintidx // Explicit field merging preserves bounded responsive overrides.
 func mergeStyle(base, override ui.Style) ui.Style {
+	if override.Set2&ui.Style2Width != 0 {
+		base.Width = override.Width
+	}
+
+	if override.Set2&ui.Style2Height != 0 {
+		base.Height = override.Height
+	}
+
 	if override.Set&ui.StyleBackground != 0 {
 		base.Background = override.Background
 	}

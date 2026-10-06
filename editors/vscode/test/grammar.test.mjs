@@ -61,7 +61,7 @@ test('shared SFC compiler sample stays highlighted in all three blocks', async (
   has(tokens, 'MenuProps', 'meta.embedded.script.go');
   has(tokens, 'MainMenu', 'entity.name.tag.html');
   has(tokens, 'onClick', 'entity.other.attribute-name.html');
-  has(tokens, '.primary:hover', 'entity.other.attribute-name.class.css');
+  has(tokens, '&:hover', 'entity.other.attribute-name.class.css');
 });
 
 test('nested Go braces, comments, escaped strings and raw strings do not swallow tags', () => {
@@ -79,14 +79,15 @@ test('nested Go braces, comments, escaped strings and raw strings do not swallow
   assert.ok(done && !done.scopes.includes('meta.embedded.expression.go'));
 });
 
-test('manifest and snippet contributions remain declarative', async () => {
+test('manifest retains language and snippet contributions alongside local providers', async () => {
   const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
-  assert.equal(manifest.main, undefined);
+  assert.equal(manifest.main, './src/extension.js');
   assert.equal(manifest.browser, undefined);
   assert.equal(manifest.contributes.languages[0].id, 'kartui');
   assert.deepEqual(manifest.contributes.languages[0].extensions, ['.kui', '.kui.tmpl']);
   const snippets = JSON.parse(await readFile(new URL('../snippets/kartui.json', import.meta.url)));
-  assert.ok(snippets.Component.body.some(line => line.startsWith('kartui ')));
+  assert.ok(snippets.Component.body.includes('<script setup lang="go">'));
+  assert.ok(snippets['Legacy component'].body.some(line => line.startsWith('kartui ')));
   JSON.parse(await readFile(new URL('../language-configuration.json', import.meta.url)));
 });
 
@@ -134,4 +135,62 @@ test('conditional markup keeps Go conditions and both branches highlighted', () 
   has(tokens, 'else', 'keyword.control.go');
   has(tokens, 'label', 'entity.name.tag.html');
   has(tokens, 'button', 'entity.name.tag.html');
+});
+
+test('typed widgets and tooltip attributes are highlighted', () => {
+ const tokens = tokenize('kartui Settings { <panel><checkbox checked={enabled} onChange={change} tooltip="Audio"/><input value={name} placeholder="Name"/><slider min="0" max="100"/><combo rows={choices} selected={selection}/><tabs selected={active}><tab title="General"/></tabs></panel> }');
+ for (const tag of ['checkbox','input','slider','combo','tabs','tab']) has(tokens,tag,'entity.name.tag.html');
+ for (const attribute of ['checked','onChange','tooltip','value','placeholder','min','max','rows','selected','title']) has(tokens,attribute,'entity.other.attribute-name.html');
+});
+
+test('indented styles highlight variables, states, units and leave the next block intact', () => {
+  for (const opening of ['<style>', '<style lang="sass">']) {
+    const tokens = tokenize(opening + '\n$space: theme.spacing.gap\n.primary\n  width: 33.33%\n  height: 44px\n  align: stretch\n  gap: $space\n  &:hover\n    background: theme.colors.primary-hover\n  // local comment\n</style>\n<template><panel/></template>');
+    has(tokens, '$space', 'variable.other.sass');
+    has(tokens, '.primary', 'entity.other.attribute-name.class.css');
+    has(tokens, '&:hover', 'entity.other.attribute-name.class.css');
+    has(tokens, 'width', 'support.type.property-name.css');
+    has(tokens, 'align', 'support.type.property-name.css');
+    has(tokens, '33.33%', 'constant.numeric.css');
+    has(tokens, '44px', 'constant.numeric.css');
+    has(tokens, 'panel', 'entity.name.tag.html');
+  }
+});
+
+test('editor includes compact SFC, nesting and percentage sizing snippets', async () => {
+  const snippets = JSON.parse(await readFile(new URL('../snippets/kartui.json', import.meta.url)));
+  assert.ok(snippets['SFC component'].body.includes('<style>'));
+  assert.ok(snippets['Indented styles'].body.some(line => line.includes('width:')));
+  assert.ok(snippets['Nested widget state'].body[0].startsWith('&:'));
+  assert.ok(snippets['Parent-relative size'].body.some(line => line.includes('100%')));
+});
+
+test('indented selectors and states indent their declarations', async () => {
+  const config = JSON.parse(await readFile(new URL('../language-configuration.json', import.meta.url)));
+  const increase = new RegExp(config.indentationRules.increaseIndentPattern);
+  for (const line of ['.screen', '  &:hover', 'button', '@media (max-width: 480)', '.primary // comment']) {
+    assert.ok(increase.test(line), `${line} should indent the next line`);
+  }
+  for (const line of ['  width: 80%', '  direction: row', '$space: 8px']) {
+    assert.ok(!increase.test(line), `${line} should preserve declaration indentation`);
+  }
+});
+
+
+test('ordinary SFC edits and qualified layout overrides remain highlighted', () => {
+  for (const opening of ['<script lang="go" setup>', "<script setup lang='go' >", '<script\n lang="go"\n setup\n>']) {
+    const tokens = tokenize('<!-- Screen -->\n' + opening + '\nfunc setup() { volume := int32(50) }\n</script >\n<template ><panel><label>Ready</label></panel></template >\n<style lang=\'sass\' >\nFrame.content\n  gap: 12px\n</style >');
+    has(tokens, 'func', 'meta.embedded.script.go');
+    has(tokens, 'int32', 'storage.type.go');
+    has(tokens, 'label', 'entity.name.tag.html');
+    has(tokens, 'Frame.content', 'entity.other.attribute-name.class.css');
+  }
+});
+
+test('widgets and settings examples are available as authoring snippets', async () => {
+  const snippets = JSON.parse(await readFile(new URL('../snippets/kartui.json', import.meta.url)));
+  for (const name of ['Checkbox', 'Text input', 'Slider', 'Combo', 'Tabs', 'Tooltip', 'Settings screen', 'Layout class override']) assert.ok(snippets[name]);
+  assert.ok(snippets['Settings screen'].body.includes('<script setup lang="go">'));
+  const config = JSON.parse(await readFile(new URL('../language-configuration.json', import.meta.url)));
+  assert.ok(new RegExp(config.indentationRules.increaseIndentPattern).test('Frame.content'));
 });

@@ -8,15 +8,15 @@ import _kartyEngine {{printf "%q" .Engine}}
 {{.Preamble}}
 
 func {{.Name}}({{range .Parameters}}{{.Name}} {{.Type}},{{end}}) *_kartyEngine.UI {
- view := (_kartyEngine.Game{}).ShowUI({{printf "%q" .Asset}},nil,nil)
- _kartySetup{{.Name}}(view,{{range .Parameters}}{{.Name}},{{end}})
- return view
+ _kartyView := (_kartyEngine.Game{}).ShowUI({{printf "%q" .Asset}},nil,nil)
+ _kartySetup{{.Name}}(_kartyView,{{range .Parameters}}{{.Name}},{{end}})
+ return _kartyView
 }
 {{if .ChildFactory}}{{$props := index .Parameters 0}}
-func _kartyChild{{.Name}}(parent *_kartyEngine.UI, slot uint32, key any, value {{$props.Type}}) {
- view, fresh := parent.Child(slot,key,{{printf "%q" .Asset}})
- if view == nil { return }
- if fresh { _kartySetup{{.Name}}(view,value) } else { view.SetProps(value) }
+func _kartyChild{{.Name}}(_kartyParent *_kartyEngine.UI, _kartySlot uint32, _kartyKey any, _kartyValue {{$props.Type}}) {
+ _kartyView, _kartyFresh := _kartyParent.Child(_kartySlot,_kartyKey,{{printf "%q" .Asset}})
+ if _kartyView == nil { return }
+ if _kartyFresh { _kartySetup{{.Name}}(_kartyView,_kartyValue) } else { _kartyView.SetProps(_kartyValue) }
 }
 {{end}}
 func _kartySetup{{.Name}}(_kartyView *_kartyEngine.UI, {{range .Parameters}}{{.Name}} {{.Type}},{{end}}) {
@@ -33,17 +33,21 @@ func _kartySetup{{.Name}}(_kartyView *_kartyEngine.UI, {{range .Parameters}}{{.N
  {{else}}
  {{if .Visible}}_kartyTarget.SetVisible({{.ID}},{{.Visible}}){{end}}
  {{if .Rows}}_kartyTarget.Rows({{.ID}},{{.Rows}})
+ {{end}}
+ {{if .Value}}_kartyTarget.{{.ValueMethod}}({{.ID}},{{.Value}},{{.Enabled}})
  {{else if .Text}}_kartyTarget.Set({{.ID}},{{.Text}},{{.Enabled}})
- {{else if ne .Enabled "true"}}_kartyTarget.Set({{.ID}},{{printf "%q" .DefaultText}},{{.Enabled}})
+ {{else if and (not .Rows) (ne .Enabled "true")}}_kartyTarget.Set({{.ID}},{{printf "%q" .DefaultText}},{{.Enabled}})
  {{end}}{{end}}{{end}}
  },func(_kartyAction _kartyEngine.UIAction) {
- {{if .Back}}if _kartyAction.Element == _kartyEngine.UIElement({{.BackElement}}) { var callback func() = {{.Back}}; if callback != nil { callback() }; return }
+ {{if .Back}}if _kartyAction.Element == _kartyEngine.UIElement({{.BackElement}}) { var _kartyCallback func() = {{.Back}}; if _kartyCallback != nil { _kartyCallback() }; return }
  {{end}}
  switch _kartyAction.Element {
- {{range .Bindings}}{{if .Click}}case {{.ID}}:
- {{if .Rows}}var callback func(uint32) = {{.Click}}; if callback != nil { callback(_kartyAction.Row) }
- {{else}}var callback func() = {{.Click}}; if callback != nil { callback() }{{end}}
+ {{range .Bindings}}{{if .Change}}case {{.ID}}:
+ var _kartyCallback func({{.ChangeType}}) = {{.Change}}; if _kartyCallback != nil { _kartyCallback(_kartyAction.{{.ChangeField}}) }
+ {{else if .Click}}case {{.ID}}:
+ {{if .Rows}}var _kartyCallback func(uint32) = {{.Click}}; if _kartyCallback != nil { _kartyCallback(_kartyAction.Row) }
+ {{else}}var _kartyCallback func() = {{.Click}}; if _kartyCallback != nil { _kartyCallback() }{{end}}
  {{end}}{{end}}
  }
- },{{if .ChildFactory}}{{$props := index .Parameters 0}}func(value any) { {{$props.Name}} = value.({{$props.Type}}) }{{else}}nil{{end}})
+ },{{if .ChildFactory}}{{$props := index .Parameters 0}}func(_kartyValue any) { {{$props.Name}} = _kartyValue.({{$props.Type}}) }{{else}}nil{{end}})
 }

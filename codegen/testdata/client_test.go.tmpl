@@ -1,0 +1,49 @@
+package {{.Package}}
+
+import (
+	"testing"
+
+	engine "example.com/adaptertest/.karty/engine"
+)
+
+func TestGeneratedBindings(t *testing.T) {
+	calls := 0
+	props := &ParentProps{Title: "first", Click: func() { calls++ }}
+	root := Parent(props)
+	child := root.Children[1]
+	if child == nil || child.Text[1] != "first" {
+		t.Fatal("initial child projection missing")
+	}
+	root.Dispatch(engine.UIAction{Element: 2})
+	root.Dispatch(engine.UIAction{Element: 65})
+	if calls != 2 {
+		t.Fatalf("callbacks=%d, want 2", calls)
+	}
+	props.Title = "second"
+	root.Invalidate()
+	if root.Children[1] != child || child.Text[1] != "second" {
+		t.Fatal("retained child failed to receive updated props")
+	}
+	plain := Plain("plain")
+	if plain.Text[1] != "plain" || !plain.Visible[1] {
+		t.Fatal("ordinary client binding missing")
+	}
+}
+
+func TestGeneratedWidgetBindings(t *testing.T) {
+ props:= &WidgetProps{Checked:true,Name:"name",Volume:42,Selected:1}
+ props.Check=func(value bool){props.Checked=value}
+ props.Input=func(value string){props.Name=value}
+ props.Slide=func(value int32){props.Volume=value}
+ props.Select=func(value uint32){props.Selected=value}
+ for _,view:=range []*engine.UI{Widgets(props),WidgetParent(props).Children[1]} {
+  if view.Text[1]!="true" || view.Text[2]!="name" || view.Text[3]!="42" || view.Text[4]!="1" || len(view.Lists[4])!=1 {t.Fatal("typed projection missing",view)}
+  view.Dispatch(engine.UIAction{Element:1,Checked:false})
+  view.Dispatch(engine.UIAction{Element:2,Text:"edited"})
+  view.Dispatch(engine.UIAction{Element:3,Value:17})
+  view.Dispatch(engine.UIAction{Element:4,Selected:7})
+  view.Invalidate()
+  if view.Text[1]!="false" || view.Text[2]!="edited" || view.Text[3]!="17" || view.Text[4]!="7" {t.Fatal("typed callback missing",view)}
+  props.Checked,props.Name,props.Volume,props.Selected=true,"name",42,1
+ }
+}
