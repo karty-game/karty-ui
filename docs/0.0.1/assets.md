@@ -21,11 +21,11 @@ role = "display"      # body, display, mono; each at most once
 source = "assets/fonts/title.otf"
 
 [[assets.layout]]
-source = "ui/layouts/window.ui" # build-time shell, no runtime name
+source = "ui/layouts/window-layout.kui" # build-time shell, no runtime name
 
 [[assets.ui]]
 name = "ui.inventory" # unique runtime UI asset name
-source = "ui/views/inventory.ui"
+source = "ui/views/inventory.kui"
 ```
 
 `[project]` requires `name`; `compiler` is `tinygo` (default) or `go`.

@@ -1,9 +1,11 @@
 package uicompiler
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/scanner"
 	"go/token"
@@ -15,24 +17,32 @@ import (
 )
 
 type singleFileComponent struct {
-	script                      string
-	template                    string
-	style                       string
-	preamble, parameters, setup string
-	hasScript                   bool
-	styleIndented               bool
-	styleWarnings               []Diagnostic
-	styleDocument               styleSource
-	templateDocument            styleSource
-	scriptStart                 int
+	script           string
+	template         string
+	style            string
+	preamble, setup  string
+	parameters       []Parameter
+	hasScript        bool
+	styleWarnings    []Diagnostic
+	styleDocument    styleSource
+	templateDocument styleSource
+	scriptStart      int
 }
 
-// parseSingleFileComponent recognizes the experimental SFC syntax. Script
+// parseSingleFileComponent parses the .kui single-file syntax. Script
 // content is a Go file containing imports/types and one setup function.
-func parseSingleFileComponent(source string, data []byte) (singleFileComponent, bool, error) {
+func parseSingleFileComponent(source string, data []byte) (singleFileComponent, error) {
 	original := string(data)
+	if !strings.HasSuffix(source, ".kui") {
+		return singleFileComponent{}, sourceError(sourcePosition(source, original, 0), "use a .kui single-file component", ui.ErrTemplate)
+	}
+
 	if !strings.HasPrefix(strings.TrimSpace(original), "<") {
-		return singleFileComponent{}, false, nil
+		return singleFileComponent{}, sourceError(
+			sourcePosition(source, original, 0),
+			"expected a .kui <template> block; legacy declarations are unsupported",
+			ui.ErrTemplate,
+		)
 	}
 
 	result := singleFileComponent{}
@@ -51,7 +61,7 @@ func parseSingleFileComponent(source string, data []byte) (singleFileComponent, 
 		if strings.HasPrefix(text, "<!--") {
 			end := strings.Index(text, "-->")
 			if end < 0 {
-				return result, true, sourceError(location, "unclosed SFC comment", ui.ErrTemplate)
+				return result, sourceError(location, "unclosed SFC comment", ui.ErrTemplate)
 			}
 
 			text = text[end+len("-->"):]
@@ -61,16 +71,16 @@ func parseSingleFileComponent(source string, data []byte) (singleFileComponent, 
 
 		openingEnd := sfcOpeningEnd(text)
 		if openingEnd < 0 {
-			return result, true, sourceError(location, "expected an opening SFC block", ui.ErrTemplate)
+			return result, sourceError(location, "expected an opening SFC block", ui.ErrTemplate)
 		}
 
-		name, attributes, err := sfcOpening(text[:openingEnd+1])
+		name, _, err := sfcOpening(text[:openingEnd+1])
 		if err != nil {
-			return result, true, sourceError(location, "invalid SFC opening block", err)
+			return result, sourceError(location, "invalid SFC opening block", err)
 		}
 
 		if seen[name] {
-			return result, true, sourceError(location, "duplicate SFC "+name+" block", ui.ErrTemplate)
+			return result, sourceError(location, "duplicate SFC "+name+" block", ui.ErrTemplate)
 		}
 
 		seen[name] = true
@@ -78,7 +88,7 @@ func parseSingleFileComponent(source string, data []byte) (singleFileComponent, 
 
 		closeAt, closeEnd := sfcClosing(text[openingEnd+1:], name)
 		if closeAt < 0 {
-			return result, true, sourceError(location, "missing </"+name+">", ui.ErrTemplate)
+			return result, sourceError(location, "missing </"+name+">", ui.ErrTemplate)
 		}
 
 		content := text[openingEnd+1 : openingEnd+1+closeAt]
@@ -94,23 +104,12 @@ func parseSingleFileComponent(source string, data []byte) (singleFileComponent, 
 		case "style":
 			result.style = content
 			result.styleDocument = document
-			result.styleIndented = attributes["lang"] == "sass"
 		}
 
 		text = text[openingEnd+1+closeEnd:]
 	}
 
-	return finishSingleFileComponent(source, original, result, seen["template"], seen["script"])
-}
-
-func finishSingleFileComponent(
-	source, original string,
-	result singleFileComponent,
-	hasTemplate, hasScript bool,
-) (singleFileComponent, bool, error) {
-	finished, err := finishSingleFileBlocks(source, original, result, hasTemplate, hasScript)
-
-	return finished, true, err
+	return finishSingleFileBlocks(source, original, result, seen["template"], seen["script"])
 }
 
 func finishSingleFileBlocks(source, original string, result singleFileComponent, hasTemplate, hasScript bool) (singleFileComponent, error) {
@@ -118,7 +117,7 @@ func finishSingleFileBlocks(source, original string, result singleFileComponent,
 		return result, sourceError(sourcePosition(source, original, 0), "SFC requires a non-empty template block", ui.ErrTemplate)
 	}
 
-	if result.styleIndented || (strings.TrimSpace(result.style) != "" && !strings.ContainsAny(result.style, "{}")) {
+	if strings.TrimSpace(result.style) != "" {
 		document, err := lowerIndentedStyleDocument(result.styleDocument)
 		if err != nil {
 			return result, err
@@ -153,92 +152,20 @@ func finishSingleFileBlocks(source, original string, result singleFileComponent,
 	return result, nil
 }
 
-func (component singleFileComponent) componentSource(source string) (string, error) {
-	name, err := inferredComponentName(source)
-	if err != nil {
-		return "", err
-	}
-
-	preamble, parameters, body := component.preamble, component.parameters, component.setup
-	if !component.hasScript {
-		parameters = "()"
-	}
-
-	var result strings.Builder
-	if preamble != "" {
-		result.WriteString(preamble)
-		result.WriteByte('\n')
-	}
-
-	if component.hasScript {
-		result.WriteString("setup ")
-		result.WriteString(name)
-		result.WriteString(parameters)
-		result.WriteString(" {\n")
-		result.WriteString(body)
-		result.WriteString("\n}\n")
-	}
-
-	result.WriteString("kartui ")
-	result.WriteString(name)
-
-	if !component.hasScript {
-		result.WriteString(parameters)
-	}
-
-	result.WriteString(" {\n")
-	result.WriteString(component.template)
-	result.WriteString("\n}\n")
-
-	if component.style != "" {
-		result.WriteString("style {\n")
-		result.WriteString(component.style)
-		result.WriteString("\n}\n")
-	}
-
-	return result.String(), nil
-}
-
-func (component singleFileComponent) layoutSource(source string) (string, error) {
-	name, err := inferredComponentName(source)
-	if err != nil {
-		return "", err
-	}
-
-	if component.hasScript {
-		return "", fmt.Errorf("%s: layout SFC cannot contain a script block: %w", source, ui.ErrTemplate)
-	}
-
-	var result strings.Builder
-	result.WriteString("layout ")
-	result.WriteString(name)
-	result.WriteString(" {\n")
-	result.WriteString(component.template)
-	result.WriteString("\n}\n")
-
-	if component.style != "" {
-		result.WriteString("style {\n")
-		result.WriteString(component.style)
-		result.WriteString("\n}\n")
-	}
-
-	return result.String(), nil
-}
-
 // sfcSetup returns Go package declarations, the setup signature parameters,
 // and the setup body. The source remains valid Go for editor tooling.
-func sfcSetup(source, script string) (preamble, parameters, body string, err error) {
+func sfcSetup(source, script string) (preamble string, parameters []Parameter, body string, err error) {
 	const packagePrefix = "package kartui\n"
 
 	set := token.NewFileSet()
 
 	file, parseErr := parser.ParseFile(set, source, packagePrefix+script, parser.ParseComments)
 	if parseErr != nil {
-		return "", "", "", parseErr
+		return "", nil, "", parseErr
 	}
 
 	if len(file.Decls) == 0 {
-		return "", "", "", fmt.Errorf("%s: Go script requires one setup function: %w", source, ui.ErrTemplate)
+		return "", nil, "", fmt.Errorf("%s: Go script requires one setup function: %w", source, ui.ErrTemplate)
 	}
 
 	var setup *ast.FuncDecl
@@ -247,12 +174,12 @@ func sfcSetup(source, script string) (preamble, parameters, body string, err err
 		switch value := declaration.(type) {
 		case *ast.GenDecl:
 			if value.Tok != token.IMPORT && value.Tok != token.TYPE {
-				return "", "", "", fmt.Errorf("%s: Go script supports imports, types, and setup: %w", source, ui.ErrTemplate)
+				return "", nil, "", fmt.Errorf("%s: Go script supports imports, types, and setup: %w", source, ui.ErrTemplate)
 			}
 		case *ast.FuncDecl:
 			if setup != nil || value.Name.Name != "setup" || value.Recv != nil || value.Type.Results != nil ||
 				value.Type.TypeParams != nil || value.Body == nil || index != len(file.Decls)-1 {
-				return "", "", "", fmt.Errorf(
+				return "", nil, "", fmt.Errorf(
 					"%s: Go script requires one final func setup(args) with no result: %w",
 					source,
 					ui.ErrTemplate,
@@ -261,30 +188,21 @@ func sfcSetup(source, script string) (preamble, parameters, body string, err err
 
 			setup = value
 		default:
-			return "", "", "", fmt.Errorf("%s: unsupported Go script declaration: %w", source, ui.ErrTemplate)
+			return "", nil, "", fmt.Errorf("%s: unsupported Go script declaration: %w", source, ui.ErrTemplate)
 		}
 	}
 
 	if setup == nil {
-		return "", "", "", fmt.Errorf("%s: Go script requires one setup function: %w", source, ui.ErrTemplate)
+		return "", nil, "", fmt.Errorf("%s: Go script requires one setup function: %w", source, ui.ErrTemplate)
 	}
 
 	if setup.Type.Params == nil {
-		return "", "", "", fmt.Errorf("%s: setup function has no parameter list: %w", source, ui.ErrTemplate)
+		return "", nil, "", fmt.Errorf("%s: setup function has no parameter list: %w", source, ui.ErrTemplate)
 	}
 
-	var params string
-
-	paramsStart := set.Position(setup.Type.Params.Pos()).Offset - len(packagePrefix)
-
-	paramsEnd := set.Position(setup.Type.Params.End()).Offset - len(packagePrefix)
-	switch {
-	case len(setup.Type.Params.List) == 0:
-		params = "()"
-	case paramsStart < 0 || paramsEnd < paramsStart || paramsEnd > len(script):
-		return "", "", "", fmt.Errorf("%s: invalid Go setup parameters: %w", source, ui.ErrTemplate)
-	default:
-		params = script[paramsStart:paramsEnd]
+	params, err := setupParameters(source, setup.Type.Params)
+	if err != nil {
+		return "", nil, "", err
 	}
 
 	fileStart := len(packagePrefix)
@@ -293,7 +211,7 @@ func sfcSetup(source, script string) (preamble, parameters, body string, err err
 
 	bodyEnd := set.Position(setup.Body.Rbrace).Offset - fileStart
 	if setupStart < 0 || bodyStart < 0 || bodyEnd < bodyStart || bodyEnd > len(script) {
-		return "", "", "", fmt.Errorf("%s: invalid Go setup positions: %w", source, ui.ErrTemplate)
+		return "", nil, "", fmt.Errorf("%s: invalid Go setup positions: %w", source, ui.ErrTemplate)
 	}
 
 	return strings.TrimSpace(script[:setupStart]), params, script[bodyStart:bodyEnd], nil
@@ -331,4 +249,35 @@ func utf8FirstRune(text string) (rune, int) {
 	}
 
 	return 0, 0
+}
+
+func setupParameters(source string, fields *ast.FieldList) ([]Parameter, error) {
+	var parameters []Parameter
+
+	seen := map[string]bool{}
+
+	for _, field := range fields.List {
+		var output bytes.Buffer
+		if err := format.Node(&output, token.NewFileSet(), field.Type); err != nil {
+			return nil, err
+		}
+
+		kind := output.String()
+
+		if len(field.Names) == 0 {
+			return nil, fmt.Errorf("%s: parameters must be named: %w", source, ui.ErrTemplate)
+		}
+
+		for _, name := range field.Names {
+			if seen[name.Name] || name.Name == "invalidate" ||
+				strings.HasPrefix(name.Name, "_karty") {
+				return nil, fmt.Errorf("%s: parameter %s must be unique and not reserved: %w", source, name, ui.ErrTemplate)
+			}
+
+			seen[name.Name] = true
+			parameters = append(parameters, Parameter{Name: name.Name, Type: kind})
+		}
+	}
+
+	return parameters, nil
 }

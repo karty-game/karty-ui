@@ -8,6 +8,13 @@ make game menus and HUDs easy to author.
 A `main-menu.kui` file declares a component with typed inputs and Go callbacks:
 
 ```html
+<template>
+    <panel modal="true">
+        <label class="title">{ props.Title }</label>
+        <button onClick={ props.Play }>Play</button>
+    </panel>
+</template>
+
 <script setup lang="go">
 type MainMenuProps struct {
     Title string
@@ -16,13 +23,6 @@ type MainMenuProps struct {
 
 func setup(props MainMenuProps) {}
 </script>
-
-<template>
-    <panel modal="true">
-        <label class="title">{ props.Title }</label>
-        <button onClick={ props.Play }>Play</button>
-    </panel>
-</template>
 
 <style>
 .title
@@ -41,12 +41,9 @@ the script and style blocks are optional.
 - **VS Code extension** for context-aware completion, hover help, local style
   navigation, highlighting and snippets.
 
-This single-file component format is experimental. The compiler also supports
-the legacy `kartui Name(...) { ... }` form. See [the SFC sample](samples/sfc-demo/README.md)
-for a component with setup logic, a reusable layout, and styles.
-KartUI's compiler and editor support `.kui`. The CLI also discovers, stages and
-packages `.kui` components/layouts alongside legacy `.ui` sources; existing
-projects can keep their current format.
+KartUI uses `.kui` single-file components with indented styles. See
+[the SFC sample](samples/sfc-demo/README.md) for setup logic, a reusable layout,
+and styles. The CLI discovers, stages and packages `.kui` components and layouts.
 
 This public repository builds independently of the private Karty Engine.
 Rendering and platform input belong to the engine.

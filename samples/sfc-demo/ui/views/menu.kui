@@ -1,3 +1,10 @@
+<template>
+    <MainMenu>
+        <fragment slot="title"><label class="title">{ args.Title }</label></fragment>
+        <button class="primary" onClick={ choose }>Play</button>
+    </MainMenu>
+</template>
+
 <script setup lang="go">
 import "strings"
 
@@ -13,13 +20,6 @@ func setup(args MenuProps) {
 	}
 }
 </script>
-
-<template>
-    <MainMenu>
-        <fragment slot="title"><label class="title">{ args.Title }</label></fragment>
-        <button class="primary" onClick={ choose }>Play</button>
-    </MainMenu>
-</template>
 
 <style>
 $accent: theme.colors.accent

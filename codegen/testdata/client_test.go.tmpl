@@ -7,6 +7,7 @@ import (
 )
 
 func TestGeneratedBindings(t *testing.T) {
+	if Static() == nil { t.Fatal("scriptless SFC adapter missing") }
 	calls := 0
 	props := &ParentProps{Title: "first", Click: func() { calls++ }}
 	root := Parent(props)

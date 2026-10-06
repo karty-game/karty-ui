@@ -59,7 +59,15 @@ func lowerIndentedStyleDocument(document styleSource) (styleSource, error) {
 		}
 
 		if strings.ContainsAny(line, "\t{};") {
-			return document, parser.fail(index+1, "use spaces and indented declarations without braces or semicolons")
+			document.text = ""
+			document.warnings = []Diagnostic{
+				{
+					SourceLocation: location,
+					Message:        "style block ignored: use spaces and indented declarations without braces or semicolons",
+				},
+			}
+
+			return document, nil
 		}
 
 		parser.lines = append(parser.lines, indentedStyleLine{

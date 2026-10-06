@@ -2,7 +2,7 @@
   "name": "kartui",
   "displayName": "KartUI",
   "description": "Context-aware completion, hover help, syntax highlighting and snippets for KartUI.",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "publisher": "karty-local",
   "icon": "./icons/kartui.png",
   "engines": {

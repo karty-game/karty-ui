@@ -192,20 +192,6 @@ func validateSlice(image ui.Image, dimension [2]int) error {
 	return nil
 }
 
-func splitStyle(text string) (string, string, error) {
-	marker := strings.LastIndex(text, "\nstyle {")
-	if marker < 0 {
-		return text, "", nil
-	}
-
-	body := strings.TrimSpace(text[marker+1:])
-	if !strings.HasPrefix(body, "style {") || !strings.HasSuffix(body, "}") {
-		return "", "", ui.ErrTemplate
-	}
-
-	return strings.TrimSpace(text[:marker]), body[len("style {") : len(body)-1], nil
-}
-
 type styleRules struct {
 	base               map[string][]styleDeclaration
 	responsive         map[string][]styleDeclaration

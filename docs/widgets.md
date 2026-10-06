@@ -4,14 +4,14 @@ SDK 0.0.9 uses API 0.0.7, wire protocol 10. Widgets use presentation schema 10; 
 These controls work in modal screens and interactive nonmodal HUDs. Earlier
 SDKs do not support these widget bindings.
 
-| Control | Required bindings | Callback argument | Literal attributes |
-| --- | --- | --- | --- |
-| `checkbox` | `checked={bool}`, `onChange={func(bool)}` | checked state | literal body label |
-| `input` | `value={string}`, `onChange={func(string)}` | edited text | `placeholder` |
-| `slider` | `value={int32}`, `onChange={func(int32)}` | integer value | `min`, `max` |
-| `combo` | `rows={[]UIRow}`, `selected={uint32}`, `onChange={func(uint32)}` | stable row ID | — |
-| `tabs` | `selected={uint32}`, `onChange={func(uint32)}` | zero-based tab index | — |
-| `tab` | child of `tabs` | — | `title` |
+| Control    | Required bindings                                                | Callback argument    | Literal attributes |
+| ---------- | ---------------------------------------------------------------- | -------------------- | ------------------ |
+| `checkbox` | `checked={bool}`, `onChange={func(bool)}`                        | checked state        | literal body label |
+| `input`    | `value={string}`, `onChange={func(string)}`                      | edited text          | `placeholder`      |
+| `slider`   | `value={int32}`, `onChange={func(int32)}`                        | integer value        | `min`, `max`       |
+| `combo`    | `rows={[]UIRow}`, `selected={uint32}`, `onChange={func(uint32)}` | stable row ID        | —                  |
+| `tabs`     | `selected={uint32}`, `onChange={func(uint32)}`                   | zero-based tab index | —                  |
+| `tab`      | child of `tabs`                                                  | —                    | `title`            |
 
 All value controls accept `enabled={bool}` and `class`. Tooltips use a literal
 `tooltip="Help text"` on a control, label, image or nested panel; tooltips do
@@ -20,6 +20,19 @@ Checkbox labels, tab titles, placeholders and tooltip text are literal and
 render as plain text. Use a separate bound label for changing captions.
 
 ```kui
+<template>
+  <panel modal="true" class="settings">
+    <checkbox checked={audio} onChange={func(v bool) { audio = v }} tooltip="Enable sound">Audio</checkbox>
+    <input value={name} onChange={func(v string) { name = v }} placeholder="Player name"/>
+    <slider min="0" max="100" value={volume} onChange={func(v int32) { volume = v }}/>
+    <combo rows={rows} selected={selected} onChange={func(v uint32) { selected = v }}/>
+    <tabs selected={tab} onChange={func(v uint32) { tab = v }}>
+      <tab title="General"><label>General settings</label></tab>
+      <tab title="Video"><label>Video settings</label></tab>
+    </tabs>
+  </panel>
+</template>
+
 <script setup lang="go">
 import engine "example.com/game/.karty/engine"
 
@@ -36,19 +49,6 @@ func setup() {
 }
 </script>
 
-<template>
-  <panel modal="true" class="settings">
-    <checkbox checked={audio} onChange={func(v bool) { audio = v }} tooltip="Enable sound">Audio</checkbox>
-    <input value={name} onChange={func(v string) { name = v }} placeholder="Player name"/>
-    <slider min="0" max="100" value={volume} onChange={func(v int32) { volume = v }}/>
-    <combo rows={rows} selected={selected} onChange={func(v uint32) { selected = v }}/>
-    <tabs selected={tab} onChange={func(v uint32) { tab = v }}>
-      <tab title="General"><label>General settings</label></tab>
-      <tab title="Video"><label>Video settings</label></tab>
-    </tabs>
-  </panel>
-</template>
-
 <style>
 .settings
   width: 80%
@@ -61,10 +61,8 @@ func setup() {
 
 For local components, import `UIRow` from the generated engine package or use a
 model field with that type; local Go expressions follow ordinary Go import and
-scope rules. Legacy exported props also support `int32`, `uint32`, `func(bool)`,
-`func(string)` and `func(int32)` alongside existing prop types. The three adapter
-forms (same-package client, generated UI package, and legacy engine views) use
-the same typed callbacks.
+scope rules. Both adapters (same-package client and generated UI package)
+use the same typed callbacks.
 
 The host emits `EventUIChange`. The SDK derives `UIAction.Checked`, `.Text`,
 `.Value` and `.Selected` and invalidates the edited component automatically.

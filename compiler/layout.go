@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"go/ast"
 	"io"
 	"slices"
 	"strings"
@@ -50,60 +49,30 @@ func parseLayout(source string, data []byte) (Layout, error) {
 		return Layout{}, err
 	}
 
-	text := strings.TrimSpace(string(data))
-
-	var styleDocument, markupDocument styleSource
-
-	var styleWarnings []Diagnostic
-
-	if single, ok, err := parseSingleFileComponent(source, data); ok {
-		if err != nil {
-			return Layout{}, err
-		}
-
-		styleWarnings = single.styleWarnings
-		styleDocument = single.styleDocument
-		markupDocument = single.templateDocument
-
-		text, err = single.layoutSource(source)
-		if err != nil {
-			return Layout{}, err
-		}
-
-		text = strings.TrimSpace(text)
-	} else if err != nil {
+	single, err := parseSingleFileComponent(source, data)
+	if err != nil {
 		return Layout{}, err
 	}
 
-	declaration, style, err := splitStyle(text)
+	if single.hasScript {
+		return Layout{}, fmt.Errorf("%s: layouts cannot contain a script block: %w", source, ui.ErrTemplate)
+	}
+
+	name, err := inferredComponentName(source)
 	if err != nil {
-		return Layout{}, fmt.Errorf("%s: %w", source, err)
+		return Layout{}, err
 	}
 
-	opening := strings.IndexByte(declaration, '{')
-	if !strings.HasPrefix(declaration, "layout ") || opening < 0 || !strings.HasSuffix(declaration, "}") {
-		return Layout{}, fmt.Errorf("%s: expected layout Name { markup }: %w", source, ui.ErrTemplate)
-	}
-
-	name := strings.TrimSpace(declaration[len("layout "):opening])
-	if !ast.IsExported(name) || strings.ContainsAny(name, " ()\t\n") {
-		return Layout{}, fmt.Errorf("%s: invalid layout name %q: %w", source, name, ui.ErrTemplate)
-	}
-
-	markup := strings.TrimSpace(declaration[opening+1 : len(declaration)-1])
-	if markupDocument.original == "" {
-		markupDocument = sourceDocument(source, string(data), markup)
-	}
-
-	markupDocument = trimMarkupDocument(markupDocument)
+	markup := strings.TrimSpace(single.template)
+	markupDocument := trimMarkupDocument(single.templateDocument)
+	styleDocument := single.styleDocument
 
 	if offset := strings.IndexByte(markup, '{'); offset >= 0 {
-		return Layout{}, sourceError(markupDocument.position(offset),
-			"layouts cannot contain Go expressions; project page content through slots", ui.ErrTemplate)
-	}
-
-	if styleDocument.original == "" {
-		styleDocument = sourceDocument(source, string(data), style)
+		return Layout{}, sourceError(
+			markupDocument.position(offset),
+			"layouts cannot contain Go expressions; project page content through slots",
+			ui.ErrTemplate,
+		)
 	}
 
 	root, err := parseMarkupTreeDocument(markup, markupDocument)
@@ -121,8 +90,8 @@ func parseLayout(source string, data []byte) (Layout, error) {
 	return Layout{
 		Name:           name,
 		Source:         source,
-		Style:          style,
-		styleWarnings:  styleWarnings,
+		Style:          single.style,
+		styleWarnings:  single.styleWarnings,
 		styleDocument:  styleDocument,
 		markupDocument: markupDocument,
 		root:           root,

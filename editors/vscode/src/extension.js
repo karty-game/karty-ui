@@ -1,7 +1,9 @@
-'use strict';
+"use strict";
 
-const vscode = require('vscode');
-const { register } = require('./providers');
+const vscode = require("vscode");
+const { register } = require("./providers");
 
-function activate(context) { register(vscode, context); }
+function activate(context) {
+  register(vscode, context);
+}
 module.exports = { activate };

@@ -5,12 +5,12 @@ import into the existing destination repository; no Git history was rewritten.
 Existing uncommitted source changes were included. The assistant has not committed, pushed, tagged, or published this
 extraction.
 
-| Source owner | Contents |
-| --- | --- |
-| `karty-game/karty-engine` (private) | WIT, SDK definitions and templates, engine binding generator, host/runtime and renderer, compatibility/release tools |
-| `karty-game/karty` (public; local directory `karty-cli`) | CLI, project build/staging, samples, SDK installation |
-| `karty-game/karty-sdk` (public) | Shared cartridge/level formats and public SDK/host releases |
-| `karty-game/karty-ui` (public) | Compiler, schema, language reference, project Go adapter, VS Code integration |
+| Source owner                                             | Contents                                                                                                             |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `karty-game/karty-engine` (private)                      | WIT, SDK definitions and templates, engine binding generator, host/runtime and renderer, compatibility/release tools |
+| `karty-game/karty` (public; local directory `karty-cli`) | CLI, project build/staging, samples, SDK installation                                                                |
+| `karty-game/karty-sdk` (public)                          | Shared cartridge/level formats and public SDK/host releases                                                          |
+| `karty-game/karty-ui` (public)                           | Compiler, schema, language reference, project Go adapter, VS Code integration                                        |
 
 The public CLI and engine both use KartUI. Both engine and CLI consume public
 `karty-sdk/format` packages. The CLI never imports engine source. A ZIP SDK bundle

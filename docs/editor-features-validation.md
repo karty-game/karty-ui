@@ -5,15 +5,15 @@ Scope: the first increment for review item 3, described in
 from the KartUI repository root, with `GOCACHE=/tmp/kartui-go-cache` and
 `GOLANGCI_LINT_CACHE=/tmp/kartui-lint-cache` where applicable.
 
-| Exact check | Outcome |
-| --- | --- |
-| `mise run check` | Compiler/schema/codegen tests, Go build and all editor test files passed |
-| `GOWORK=off GOPROXY=off mise run check` | Standalone public module tests, build and editor checks passed |
-| `mise run lint` | Zero issues |
-| `mise run check-editor` | Final grammar, feature and provider regressions passed |
-| `mise run package-editor` | Built `dist/editor/kartui-0.1.20.vsix` |
-| VSIX inspection | Packaged manifest, README, grammar, configuration, snippets and every runtime source/catalog file match their source bytes |
-| `git diff --check` | No whitespace errors |
+| Exact check                             | Outcome                                                                                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `mise run check`                        | Compiler/schema/codegen tests, Go build and all editor test files passed                                                   |
+| `GOWORK=off GOPROXY=off mise run check` | Standalone public module tests, build and editor checks passed                                                             |
+| `mise run lint`                         | Zero issues                                                                                                                |
+| `mise run check-editor`                 | Final grammar, feature and provider regressions passed                                                                     |
+| `mise run package-editor`               | Built `dist/editor/kartui-0.1.20.vsix`                                                                                     |
+| VSIX inspection                         | Packaged manifest, README, grammar, configuration, snippets and every runtime source/catalog file match their source bytes |
+| `git diff --check`                      | No whitespace errors                                                                                                       |
 
 The compiler regression validates the complete editor style catalog, all four
 compact aliases, value examples and target allowlists against the actual compiler

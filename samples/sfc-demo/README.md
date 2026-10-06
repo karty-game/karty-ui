@@ -1,6 +1,6 @@
 # KartUI SFC compiler sample
 
-This sample exercises the experimental single-file component syntax in the
+This sample exercises the single-file component syntax in the
 KartUI compiler and VS Code grammar checks. `menu.kui` supplies the exported
 component name `Menu`; its Go script uses a `setup` function, and the compiler
 emits the component API from the file name and setup parameters.

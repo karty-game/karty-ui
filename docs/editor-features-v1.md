@@ -1,6 +1,6 @@
 # KartUI editor features v1
 
-Status: local VS Code extension 0.1.20. This adds editor services without changing
+Status: local VS Code extension 0.1.21. This adds editor services without changing
 KartUI source syntax, compiler APIs, serialized schemas, SDK pins or host behavior.
 
 The first increment for the semantic editor review item supplies context-aware
@@ -15,10 +15,10 @@ values, local classes and previously declared Sass variables. Attribute snippets
 use the widget's callback argument type. Suggestions exclude attributes already
 present on either side of the cursor and restrict style properties when a target
 widget or state rule is known. Go script and binding expressions, comments and
-plain text bodies receive no KartUI suggestions. Both indented and brace styles
-are supported; legacy component/layout markup is supported when its declaration
-can be identified. `.kui.tmpl` files receive best-effort help for the underlying
-KartUI text, not Go-template language services.
+plain text bodies receive no KartUI suggestions. Indented styles
+are supported. Legacy component/layout declarations receive no completion.
+`.kui.tmpl` files receive best-effort help for the underlying KartUI text, not
+Go-template language services.
 
 Hover help documents property units, ranges and dependencies and attribute
 bindings. Local class and Sass variable references navigate to definitions in

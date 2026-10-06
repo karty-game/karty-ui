@@ -9,7 +9,7 @@ release:
   github:
     owner: karty-game
     name: karty-ui
-  name_template: 'KartUI {{ .Tag }}'
+  name_template: "KartUI {{ .Tag }}"
   header: |
     KartUI language tools and VS Code extension.
     Install the attached VSIX in VS Code, or use the tagged Go compiler module.

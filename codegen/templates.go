@@ -2,9 +2,6 @@ package codegen
 
 import _ "embed"
 
-//go:embed templates/ui-views.go.tmpl
-var uiViewsSource string
-
 //go:embed templates/ui-client.go.tmpl
 var uiClientSource string
 

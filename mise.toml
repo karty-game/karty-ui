@@ -1,7 +1,15 @@
 [tools]
+hk = "2.5.0"
+taplo = "0.10.0"
+uv = "0.12.23"
+yamllint = { version = "1.38.0", uvx = true }
+prettier = "3.9.9"
 golangci-lint = "2.14.0"
 go = "1.27.1"
 node = "26.10.0"
+
+[hooks]
+postinstall = "hk install --mise"
 
 [shell_alias]
 fmt = "mise run fmt"
@@ -27,11 +35,20 @@ run = "npm ci --ignore-scripts --prefix editors/vscode"
 run = "node editors/vscode/package.mjs"
 
 [tasks.check]
-run = ["mise run test", "mise run build", "mise run check-editor"]
+run = ["mise run check-fmt", "mise run lint", "mise run test", "mise run build", "mise run check-editor"]
 
 [tasks.fmt]
-run = "gofmt -w compiler schema codegen"
+run = "hk fix --all --profile format"
 
+[tasks.check-fmt]
+run = "hk check --all --profile format"
 
 [tasks.lint]
+run = "hk check --all"
+
+[tasks.lint-go]
 run = "golangci-lint run ./..."
+
+[tasks.install-hooks]
+description = "Install repository hk hooks with the pinned mise environment"
+run = "hk install --mise"

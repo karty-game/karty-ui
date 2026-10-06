@@ -4,7 +4,7 @@
 
 # KartUI style reference
 
-Use an indented `<style>` block in new `.kui` components and layouts.
+Use an indented `<style>` block in `.kui` components and layouts.
 Selectors are element names (`panel`, `label`, `image`, `button`, `list`, and the
 new widget names), one `.class`, or an explicit layout-class override such as
 `Frame.content`. Element rules apply before class rules. Layout styles remain
@@ -13,40 +13,40 @@ There is no general descendant matching, selector list, arbitrary CSS, per-side
 box model or dynamic class list. Values may use matching `theme.*` tokens.
 Colors are `#RRGGBB`/`#RRGGBBAA`. Width/height use `auto`, pixels or parent-relative
 percentages. See [indented styles and sizing](indented-styles.md) for complete
-syntax, bounds and percentage behavior. Brace styles remain compatible.
+syntax, bounds and percentage behavior.
 
-| Property | Target | Value |
-| --- | --- | --- |
-| `background` | panel/button/list | color |
-| `background-hover`, `background-focus`, `background-pressed`, `background-disabled` | button/list | color; direct state form (pseudo-selectors are preferred) |
-| `color` | label/button/list | color |
-| `color-hover`, `color-focus`, `color-pressed`, `color-disabled` | button/list | color; direct state form (pseudo-selectors are preferred) |
-| `background-image` | panel/button/list | `theme.images.name` |
-| `background-image-hover`, `background-image-focus`, `background-image-pressed`, `background-image-disabled` | button/list | `theme.images.name`; direct state form |
-| `padding`, `gap` | panel | integer |
-| `direction` (`flex-direction`) | panel | `column`, `row` |
-| `align` (`align-items`) | panel | `start`, `center`, `end`, `stretch` |
-| `justify` (`justify-content`) | panel | `start`, `center`, `end`, `space-between` |
-| `overflow` | panel | `visible`, `scroll` |
-| `position` | nested panel/control | `absolute` only |
-| `left`, `right`, `top`, `bottom` | absolute nested panel/control | integer inset; paired insets stretch axis |
-| `font-size` | label/button/list | integer |
-| `font-family` | label/button/list | `body`, `display`, `mono` |
-| `text-align` | label/button/list | `left`, `center`, `right` |
-| `image` | image | `theme.images.name` |
-| `image-fit` | image | `stretch`, `contain`, `cover` |
-| `icon` | button/list | `theme.images.name` |
-| `icon-position` | button/list | `start`, `end` |
-| `icon-size`, `icon-gap` | button/list | integer |
-| `tint` | image/button/list | color |
-| `width`, `height` | panel/control/image | `auto`, 0–2048 logical pixels, or 0–100% of parent content area |
-| `min-width`, `min-height`, `max-width`, `max-height` | panel/label/image/button/list | integer |
-| `grow` (`flex-grow`) | panel/label/image/button/list | integer 0–16 |
-| `margin` | panel/label/image/button/list | uniform integer 0–256 |
-| `transition-duration`, `transition-delay` | root/panel/control where supported | milliseconds 0–2000 |
-| `transition-easing` | root/panel/control where supported | `linear`, `ease-out`, `ease-in-out` |
-| `transition-enter` | nested panel | `slide-from-left`, `slide-from-right`, `slide-from-top`, `slide-from-bottom` |
-| `transition-exit` | nested panel | `slide-to-left`, `slide-to-right`, `slide-to-top`, `slide-to-bottom` |
+| Property                                                                                                    | Target                             | Value                                                                        |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| `background`                                                                                                | panel/button/list                  | color                                                                        |
+| `background-hover`, `background-focus`, `background-pressed`, `background-disabled`                         | button/list                        | color; direct state form (pseudo-selectors are preferred)                    |
+| `color`                                                                                                     | label/button/list                  | color                                                                        |
+| `color-hover`, `color-focus`, `color-pressed`, `color-disabled`                                             | button/list                        | color; direct state form (pseudo-selectors are preferred)                    |
+| `background-image`                                                                                          | panel/button/list                  | `theme.images.name`                                                          |
+| `background-image-hover`, `background-image-focus`, `background-image-pressed`, `background-image-disabled` | button/list                        | `theme.images.name`; direct state form                                       |
+| `padding`, `gap`                                                                                            | panel                              | integer                                                                      |
+| `direction` (`flex-direction`)                                                                              | panel                              | `column`, `row`                                                              |
+| `align` (`align-items`)                                                                                     | panel                              | `start`, `center`, `end`, `stretch`                                          |
+| `justify` (`justify-content`)                                                                               | panel                              | `start`, `center`, `end`, `space-between`                                    |
+| `overflow`                                                                                                  | panel                              | `visible`, `scroll`                                                          |
+| `position`                                                                                                  | nested panel/control               | `absolute` only                                                              |
+| `left`, `right`, `top`, `bottom`                                                                            | absolute nested panel/control      | integer inset; paired insets stretch axis                                    |
+| `font-size`                                                                                                 | label/button/list                  | integer                                                                      |
+| `font-family`                                                                                               | label/button/list                  | `body`, `display`, `mono`                                                    |
+| `text-align`                                                                                                | label/button/list                  | `left`, `center`, `right`                                                    |
+| `image`                                                                                                     | image                              | `theme.images.name`                                                          |
+| `image-fit`                                                                                                 | image                              | `stretch`, `contain`, `cover`                                                |
+| `icon`                                                                                                      | button/list                        | `theme.images.name`                                                          |
+| `icon-position`                                                                                             | button/list                        | `start`, `end`                                                               |
+| `icon-size`, `icon-gap`                                                                                     | button/list                        | integer                                                                      |
+| `tint`                                                                                                      | image/button/list                  | color                                                                        |
+| `width`, `height`                                                                                           | panel/control/image                | `auto`, 0–2048 logical pixels, or 0–100% of parent content area              |
+| `min-width`, `min-height`, `max-width`, `max-height`                                                        | panel/label/image/button/list      | integer                                                                      |
+| `grow` (`flex-grow`)                                                                                        | panel/label/image/button/list      | integer 0–16                                                                 |
+| `margin`                                                                                                    | panel/label/image/button/list      | uniform integer 0–256                                                        |
+| `transition-duration`, `transition-delay`                                                                   | root/panel/control where supported | milliseconds 0–2000                                                          |
+| `transition-easing`                                                                                         | root/panel/control where supported | `linear`, `ease-out`, `ease-in-out`                                          |
+| `transition-enter`                                                                                          | nested panel                       | `slide-from-left`, `slide-from-right`, `slide-from-top`, `slide-from-bottom` |
+| `transition-exit`                                                                                           | nested panel                       | `slide-to-left`, `slide-to-right`, `slide-to-top`, `slide-to-bottom`         |
 
 The target column describes the original controls. For the value widgets, see
 [widget styling restrictions](../widgets.md): checkbox, input, slider and combo
@@ -93,8 +93,7 @@ the current SDK; constrain widths and keep labels short.
 of the parent's content area (`80%`). Min/max constraints are optional clamps.
 [Indented styles and sizing](indented-styles.md) specifies the complete syntax,
 percentage semantics, shorter property names and compatibility rules. Pixel
-properties also accept an optional `px` suffix. Existing brace styles remain
-supported; `<style>` can now contain indented styles without braces or semicolons.
+properties also accept an optional `px` suffix. `<style>` accepts only indented rules without braces or semicolons.
 
 ## Invalid declarations
 

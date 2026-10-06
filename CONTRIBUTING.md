@@ -12,10 +12,16 @@ these commands from the repository root:
 
 ```sh
 mise install
+mise run fmt
+mise run check-fmt
 mise run test
 mise run build
 mise run lint
 ```
+
+`mise install` also installs the repository hk pre-commit hook. Formatting and
+lint use the same pinned hk configuration locally and in CI; see the
+[development guide](docs/development.md) for tool ownership and exclusions.
 
 No private engine checkout is required. For editor changes, also run:
 

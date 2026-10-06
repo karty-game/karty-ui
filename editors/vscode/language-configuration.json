@@ -1,83 +1,44 @@
 {
   "comments": {
-    "blockComment": [
-      "<!--",
-      "-->"
-    ]
+    "blockComment": ["<!--", "-->"]
   },
   "brackets": [
-    [
-      "{",
-      "}"
-    ],
-    [
-      "[",
-      "]"
-    ],
-    [
-      "(",
-      ")"
-    ]
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
   ],
   "autoClosingPairs": [
     {
       "open": "{",
       "close": "}",
-      "notIn": [
-        "string",
-        "comment"
-      ]
+      "notIn": ["string", "comment"]
     },
     {
       "open": "[",
       "close": "]",
-      "notIn": [
-        "string",
-        "comment"
-      ]
+      "notIn": ["string", "comment"]
     },
     {
       "open": "(",
       "close": ")",
-      "notIn": [
-        "string",
-        "comment"
-      ]
+      "notIn": ["string", "comment"]
     },
     {
       "open": "\"",
       "close": "\"",
-      "notIn": [
-        "string",
-        "comment"
-      ]
+      "notIn": ["string", "comment"]
     },
     {
       "open": "`",
       "close": "`",
-      "notIn": [
-        "string",
-        "comment"
-      ]
+      "notIn": ["string", "comment"]
     }
   ],
   "surroundingPairs": [
-    [
-      "{",
-      "}"
-    ],
-    [
-      "[",
-      "]"
-    ],
-    [
-      "(",
-      ")"
-    ],
-    [
-      "\"",
-      "\""
-    ]
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""]
   ],
   "folding": {
     "offSide": false

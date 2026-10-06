@@ -2,6 +2,13 @@
   "Component": {
     "prefix": "kartui",
     "body": [
+      "<template>",
+      "  <panel modal=\"true\" class=\"screen\">",
+      "    <label>{props.Title}</label>",
+      "    <button onClick={props.Close}>Close</button>",
+      "  </panel>",
+      "</template>",
+      "",
       "<script setup lang=\"go\">",
       "type ${1:Menu}Props struct {",
       "    Title string",
@@ -10,13 +17,6 @@
       "",
       "func setup(props ${1}Props) {}",
       "</script>",
-      "",
-      "<template>",
-      "  <panel modal=\"true\" class=\"screen\">",
-      "    <label>{props.Title}</label>",
-      "    <button onClick={props.Close}>Close</button>",
-      "  </panel>",
-      "</template>",
       "",
       "<style>",
       ".screen",
@@ -31,24 +31,17 @@
   },
   "Style rule": {
     "prefix": "style",
-    "body": [
-      ".${1:class}",
-      "  ${2:color}: theme.colors.${3:text}"
-    ],
+    "body": [".${1:class}", "  ${2:color}: theme.colors.${3:text}"],
     "description": "Insert a local rule inside an existing indented style block"
   },
   "Text alignment": {
     "prefix": "text-align",
-    "body": [
-      "text-align: ${1|left,center,right|}"
-    ],
+    "body": ["text-align: ${1|left,center,right|}"],
     "description": "Align label or control text"
   },
   "Font family": {
     "prefix": "font-family",
-    "body": [
-      "font-family: theme.typography.${1|body,title,mono|}-family"
-    ],
+    "body": ["font-family: theme.typography.${1|body,title,mono|}-family"],
     "description": "Select a theme typography role"
   },
   "Layout": {
@@ -83,38 +76,22 @@
   },
   "Horizontal panel": {
     "prefix": "panel-row",
-    "body": [
-      "<panel class=\"${1:row}\">",
-      "  $0",
-      "</panel>"
-    ],
+    "body": ["<panel class=\"${1:row}\">", "  $0", "</panel>"],
     "description": "Insert a panel; add direction: row to its class rule"
   },
   "Scrollable panel": {
     "prefix": "panel-scroll",
-    "body": [
-      "<panel class=\"${1:scrollable}\">",
-      "  $0",
-      "</panel>"
-    ],
+    "body": ["<panel class=\"${1:scrollable}\">", "  $0", "</panel>"],
     "description": "Insert a panel; add a bounded height and overflow: scroll to its class rule"
   },
   "Conditional markup": {
     "prefix": "if-ui",
-    "body": [
-      "if ${1:condition} {",
-      "    ${2:<label>Visible</label>}",
-      "} else {",
-      "    $0",
-      "}"
-    ],
+    "body": ["if ${1:condition} {", "    ${2:<label>Visible</label>}", "} else {", "    $0", "}"],
     "description": "Render one of two retained KartUI branches"
   },
   "View transition": {
     "prefix": "transition-view",
-    "body": [
-      "transition-duration: ${1:180}"
-    ],
+    "body": ["transition-duration: ${1:180}"],
     "description": "Fade a root view in using host draw-time interpolation"
   },
   "Transition timing": {
@@ -128,18 +105,12 @@
   },
   "Overlay panel": {
     "prefix": "panel-overlay",
-    "body": [
-      "<panel class=\"${1:overlay}\">",
-      "  $0",
-      "</panel>"
-    ],
+    "body": ["<panel class=\"${1:overlay}\">", "  $0", "</panel>"],
     "description": "Insert a panel; add position: absolute and insets to its class rule"
   },
   "Semantic back": {
     "prefix": "on-back",
-    "body": [
-      "onBack={ ${1:props.Back} }"
-    ],
+    "body": ["onBack={ ${1:props.Back} }"],
     "description": "Route Escape and the standard controller Back button to this view callback"
   },
   "Sliding panel": {
@@ -153,27 +124,17 @@
   },
   "Responsive styles": {
     "prefix": "media-phone",
-    "body": [
-      "@media (max-width: ${1:480})",
-      "  .${2:screen}",
-      "    padding: ${3:8}px"
-    ],
+    "body": ["@media (max-width: ${1:480})", "  .${2:screen}", "    padding: ${3:8}px"],
     "description": "Insert a responsive rule inside an indented style block"
   },
   "Nine-slice background": {
     "prefix": "nine-slice",
-    "body": [
-      "background-image: theme.images.${1:panel}"
-    ],
+    "body": ["background-image: theme.images.${1:panel}"],
     "description": "Use a nine-slice image declared by theme.toml"
   },
   "Fitted image": {
     "prefix": "image-fit",
-    "body": [
-      "image: theme.images.${1:art}",
-      "image-fit: ${2|contain,cover,stretch|}",
-      "tint: ${3:#ffffffff}"
-    ],
+    "body": ["image: theme.images.${1:art}", "image-fit: ${2|contain,cover,stretch|}", "tint: ${3:#ffffffff}"],
     "description": "Fit and optionally tint a foreground theme image"
   },
   "Button icon": {
@@ -189,16 +150,12 @@
   },
   "Button": {
     "prefix": "button",
-    "body": [
-      "<button enabled={ ${1:Enabled} } onClick={ ${2:OnClick} }>${3:Label}</button>"
-    ],
+    "body": ["<button enabled={ ${1:Enabled} } onClick={ ${2:OnClick} }>${3:Label}</button>"],
     "description": "Button using declared bool and func() parameters"
   },
   "Bound label": {
     "prefix": "label",
-    "body": [
-      "<label>{ ${1:Title} }</label>"
-    ],
+    "body": ["<label>{ ${1:Title} }</label>"],
     "description": "Display a declared string parameter"
   },
   "Indented styles": {
@@ -218,18 +175,12 @@
   },
   "Nested widget state": {
     "prefix": "state-sass",
-    "body": [
-      "&:${1|hover,focus,pressed,disabled|}",
-      "  background: theme.colors.${2:primary-hover}"
-    ],
+    "body": ["&:${1|hover,focus,pressed,disabled|}", "  background: theme.colors.${2:primary-hover}"],
     "description": "Nest a widget state under an indented style selector"
   },
   "Parent-relative size": {
     "prefix": "size-ui",
-    "body": [
-      "width: ${1:100%}",
-      "height: ${2:auto}"
-    ],
+    "body": ["width: ${1:100%}", "height: ${2:auto}"],
     "description": "Size a widget relative to its parent content area"
   },
   "SFC component": {
@@ -251,66 +202,29 @@
     ],
     "description": "Create a compact single-file KartUI component with indented styles"
   },
-  "Legacy component": {
-    "prefix": "legacy-kartui",
-    "body": [
-      "type ${1:Menu}Props struct {",
-      "    Title string",
-      "}",
-      "",
-      "setup ${1}(props ${1}Props) {",
-      "    $0",
-      "}",
-      "",
-      "kartui ${1} {",
-      "    <panel modal=\"true\" class=\"screen\">",
-      "        <label>{ props.Title }</label>",
-      "    </panel>",
-      "}",
-      "",
-      "style {",
-      "    .screen {",
-      "        background: theme.colors.surface;",
-      "        padding: theme.spacing.panel;",
-      "    }",
-      "}"
-    ],
-    "description": "Legacy KartUI component for existing projects"
-  },
   "Layout class override": {
     "prefix": "style-layout",
-    "body": [
-      "${1:Frame}.${2:content}",
-      "  ${3:gap}: ${4:12px}"
-    ],
+    "body": ["${1:Frame}.${2:content}", "  ${3:gap}: ${4:12px}"],
     "description": "Override a layout-owned class explicitly inside the consuming component style block"
   },
   "Checkbox": {
     "prefix": "checkbox",
-    "body": [
-      "<checkbox checked={${1:enabled}} onChange={func(v bool) { ${1} = v }}>${2:Enabled}</checkbox>"
-    ],
+    "body": ["<checkbox checked={${1:enabled}} onChange={func(v bool) { ${1} = v }}>${2:Enabled}</checkbox>"],
     "description": "Insert checkbox with its typed bindings"
   },
   "Text input": {
     "prefix": "input",
-    "body": [
-      "<input value={${1:name}} onChange={func(v string) { ${1} = v }} placeholder=\"${2:Name}\"/>"
-    ],
+    "body": ["<input value={${1:name}} onChange={func(v string) { ${1} = v }} placeholder=\"${2:Name}\"/>"],
     "description": "Insert text input with its typed bindings"
   },
   "Slider": {
     "prefix": "slider",
-    "body": [
-      "<slider min=\"${1:0}\" max=\"${2:100}\" value={${3:volume}} onChange={func(v int32) { ${3} = v }}/>"
-    ],
+    "body": ["<slider min=\"${1:0}\" max=\"${2:100}\" value={${3:volume}} onChange={func(v int32) { ${3} = v }}/>"],
     "description": "Insert slider with its typed bindings"
   },
   "Combo": {
     "prefix": "combo",
-    "body": [
-      "<combo rows={${1:choices}} selected={${2:selected}} onChange={func(v uint32) { ${2} = v }}/>"
-    ],
+    "body": ["<combo rows={${1:choices}} selected={${2:selected}} onChange={func(v uint32) { ${2} = v }}/>"],
     "description": "Insert combo with its typed bindings"
   },
   "Tabs": {
@@ -325,14 +239,25 @@
   },
   "Tooltip": {
     "prefix": "tooltip",
-    "body": [
-      "tooltip=\"${1:Help text}\""
-    ],
+    "body": ["tooltip=\"${1:Help text}\""],
     "description": "Insert a literal tooltip attribute"
   },
   "Settings screen": {
     "prefix": "settings-ui",
     "body": [
+      "<template>",
+      "  <panel modal=\"true\" class=\"settings\">",
+      "    <checkbox checked={audio} onChange={func(v bool) { audio = v }} tooltip=\"Enable sound\">Audio</checkbox>",
+      "    <input value={name} onChange={func(v string) { name = v }} placeholder=\"Player name\"/>",
+      "    <slider min=\"0\" max=\"100\" value={volume} onChange={func(v int32) { volume = v }}/>",
+      "    <combo rows={rows} selected={selected} onChange={func(v uint32) { selected = v }}/>",
+      "    <tabs selected={tab} onChange={func(v uint32) { tab = v }}>",
+      "      <tab title=\"General\"><label>General settings</label></tab>",
+      "      <tab title=\"Video\"><label>Video settings</label></tab>",
+      "    </tabs>",
+      "  </panel>",
+      "</template>",
+      "",
       "<script setup lang=\"go\">",
       "import engine \"example.com/game/.karty/engine\"",
       "",
@@ -348,19 +273,6 @@
       "    }",
       "}",
       "</script>",
-      "",
-      "<template>",
-      "  <panel modal=\"true\" class=\"settings\">",
-      "    <checkbox checked={audio} onChange={func(v bool) { audio = v }} tooltip=\"Enable sound\">Audio</checkbox>",
-      "    <input value={name} onChange={func(v string) { name = v }} placeholder=\"Player name\"/>",
-      "    <slider min=\"0\" max=\"100\" value={volume} onChange={func(v int32) { volume = v }}/>",
-      "    <combo rows={rows} selected={selected} onChange={func(v uint32) { selected = v }}/>",
-      "    <tabs selected={tab} onChange={func(v uint32) { tab = v }}>",
-      "      <tab title=\"General\"><label>General settings</label></tab>",
-      "      <tab title=\"Video\"><label>Video settings</label></tab>",
-      "    </tabs>",
-      "  </panel>",
-      "</template>",
       "",
       "<style>",
       ".settings",

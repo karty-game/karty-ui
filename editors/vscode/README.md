@@ -1,8 +1,8 @@
 # KartUI for VS Code
 
 Completion, hover help and local style navigation, plus syntax highlighting for `.kui` and `.kui.tmpl` files: KartUI components,
-layouts, slot/fragment markup, CSS-like style rules, pseudo-states, theme
-references, comments and strings. It recognizes the experimental SFC blocks
+layouts, slot/fragment markup, indented style rules, pseudo-states, theme
+references, comments and strings. It recognizes the SFC blocks
 `<script setup lang="go">`, `<template>` and `<style>`, with Go token scopes
 inside the script block. Includes bracket pairs, indentation-based folding and
 component, layout, style, button and label snippets. Nested expression braces
@@ -18,7 +18,7 @@ The local extension provides:
 
 - Context-aware completion for markup tags, widget attributes and typed callback
   snippets, including the matching enclosing closing tags.
-- Style properties, short aliases and value suggestions in indented or brace
+- Style properties, short aliases and value suggestions in indented
   styles. Hover a property to see its units, bounds and prerequisites.
 - Class completion from this file's styles, and Sass variable completion from
   declarations before the cursor. Ctrl+click / Go to Definition navigates to
@@ -39,14 +39,10 @@ The extension runs locally in the desktop/remote VS Code extension host and does
 not provide a browser extension entry point. It makes no network requests, starts
 no subprocesses and has no telemetry. It reads only the current editor buffer,
 so completion also works in untitled, virtual and untrusted documents.
-The extension claims `.kui` to avoid taking over `.ui`, which Qt and other
-tools also use. The compiler still accepts legacy `.ui` sources, but the
-extension does not auto-associate that shared suffix.
+KartUI documents use `.kui`; template files use `.kui.tmpl`.
 
 For development, open this directory in VS Code and launch an Extension
 Development Host with `code --extensionDevelopmentPath=/absolute/path/to/editors/vscode`.
-Select **KartUI** in the language picker for a legacy `.ui` file when needed.
-New KartUI documents use `.kui`; `.ui` is shared with other tools.
 
 Run checks from the repository root:
 
@@ -64,15 +60,15 @@ The KUI grammar highlights indented `<style>` and `<style lang="sass">` blocks,
 component variables, nested `&:state` selectors, percentages and `px` values.
 Use `kui`, `style-sass`, `state-sass` and `size-ui` snippets for the compact form.
 Short properties `direction`, `align`, `justify` and `grow` are supported by the
-compiler in either style syntax. Indentation rules recognize style selectors,
-nested states and media blocks. Existing CSS-like snippets remain available.
+compiler in indented styles. Indentation rules recognize style selectors,
+nested states and media blocks.
 
 Default `kartui` and `kui` snippets create SFC components. `layout` creates a
 layout with local styles; `style-layout` inserts an explicit `Frame.content`
 override. Use `checkbox`, `input`, `slider`, `combo`, `tabs`, `tooltip` and
 `settings-ui` for typed controls or a complete settings screen. Style property
 and responsive snippets use indentation; insert them inside an existing style
-block. `legacy-kartui` preserves the old component form. Compiler warnings use
+block. Component snippets put the template first. Compiler warnings use
 original `file:line:column` locations. The compiler remains authoritative; editor
 suggestions do not replace validation. See [editor features v1](../../docs/editor-features-v1.md)
 for scope, implementation and validation.

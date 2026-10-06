@@ -12,12 +12,26 @@ func TestStyleWarningsKeepValidDeclarationsAndLastValidValue(t *testing.T) {
 	t.Parallel()
 
 	for _, source := range []string{
-		`kartui Menu() { <panel class="screen"><label class="copy">Text</label></panel> }
-style {
- .screen { width: 80%; padding: 8; gap: 12; }
- .screen { width: 9000px; padding: 257; gap: -1; unknown: 1; }
- .copy { color: #ffffffff; padding: 8; font-size: 129; width: 120%; }
-}`,
+		`<template>
+<panel class="screen"><label class="copy">Text</label></panel>
+</template>
+
+<style>
+.screen
+  width: 80%
+  padding: 8
+  gap: 12
+.screen
+  width: 9000px
+  padding: 257
+  gap: -1
+  unknown: 1
+.copy
+  color: #ffffffff
+  padding: 8
+  font-size: 129
+  width: 120%
+</style>`,
 		`<template><panel class="screen"><label class="copy">Text</label></panel></template>
 <style>
 .screen
@@ -100,12 +114,30 @@ func TestStyleWarningsResolveDependenciesAndConflictsAcrossRules(t *testing.T) {
 	component, err := Compile(
 		"menu.kui",
 		[]byte(
-			`kartui Menu(Click func()) { <panel><panel class="scroll"><label class="copy">Text</label></panel><button class="action" onClick={Click}>Action</button></panel> }
-style {
- .scroll { gap: 8; overflow: scroll; transition-duration: 100; transition-enter: slide-from-left; top: 8; }
- .copy { min-width: 100; max-width: 50; color: #ffffff; }
- .action { icon-size: 20; transition-delay: 100; color: #ffffff; }
-}`,
+			`<template>
+<panel><panel class="scroll"><label class="copy">Text</label></panel><button class="action" onClick={Click}>Action</button></panel>
+</template>
+
+<script setup lang="go">
+func setup(Click func()) {}
+</script>
+
+<style>
+.scroll
+  gap: 8
+  overflow: scroll
+  transition-duration: 100
+  transition-enter: slide-from-left
+  top: 8
+.copy
+  min-width: 100
+  max-width: 50
+  color: #ffffff
+.action
+  icon-size: 20
+  transition-delay: 100
+  color: #ffffff
+</style>`,
 		),
 	)
 	if err != nil {
@@ -136,8 +168,20 @@ func TestSharedStyleClassIsFilteredPerWidget(t *testing.T) {
 	component, err := Compile(
 		"menu.kui",
 		[]byte(
-			`kartui Menu(Click func()) { <panel><label class="shared">Text</label><button class="shared" onClick={Click}>Action</button></panel> }
-style { .shared { color: #ffffff; background: #000000; width: 50%; } }`,
+			`<template>
+<panel><label class="shared">Text</label><button class="shared" onClick={Click}>Action</button></panel>
+</template>
+
+<script setup lang="go">
+func setup(Click func()) {}
+</script>
+
+<style>
+.shared
+  color: #ffffff
+  background: #000000
+  width: 50%
+</style>`,
 		),
 	)
 	if err != nil {
@@ -216,12 +260,19 @@ func TestStyleWarningsAreBoundedAndReturnedAsCopies(t *testing.T) {
 	for index := range maxStyleWarnings + 10 {
 		body.WriteString("bad-")
 		body.WriteString(strings.Repeat("x", index+1))
-		body.WriteString(": 1;")
+		body.WriteString(": 1\n  ")
 	}
 
 	component, err := Compile(
 		"menu.kui",
-		[]byte("kartui Menu() { <panel><label>Text</label></panel> }\nstyle { panel {"+body.String()+"} }"),
+		[]byte(`<template>
+<panel><label>Text</label></panel>
+</template>
+
+<style>
+panel
+  `+body.String()+`
+</style>`),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -257,7 +308,13 @@ func TestMalformedAssetsAndStaticBindingsRemainErrors(t *testing.T) {
 
 	if _, err := DecodeSource(
 		"level.kui",
-		[]byte(`kartui Level(Title string) { <panel><label>{Title}</label></panel> }`),
+		[]byte(`<template>
+<panel><label>{Title}</label></panel>
+</template>
+
+<script setup lang="go">
+func setup(Title string) {}
+</script>`),
 	); !errors.Is(
 		err,
 		ui.ErrTemplate,
@@ -291,13 +348,20 @@ func TestIndependentStylePropertyPrerequisitesAreOrderIndependent(t *testing.T) 
 
 	theme.Images["icon"] = ui.Image{Scope: ui.ImageScopeGame, Name: "icon"}
 	for _, declarations := range []string{
-		"top: 8; position: absolute; transition-delay: 1; transition-enter: slide-from-left; transition-duration: 100;",
-		"transition-duration: 100; transition-enter: slide-from-left; transition-delay: 1; position: absolute; top: 8;",
+		"top: 8\n  position: absolute\n  transition-delay: 1\n  transition-enter: slide-from-left\n  transition-duration: 100",
+		"transition-duration: 100\n  transition-enter: slide-from-left\n  transition-delay: 1\n  position: absolute\n  top: 8",
 	} {
 		component, err := CompileWithTheme(
 			"menu.kui",
 			[]byte(
-				"kartui Menu() { <panel><panel class=\"nested\"><label>Text</label></panel></panel> }\nstyle { .nested {"+declarations+"} }",
+				`<template>
+<panel><panel class="nested"><label>Text</label></panel></panel>
+</template>
+
+<style>
+.nested
+  `+declarations+`
+</style>`,
 			),
 			theme,
 		)

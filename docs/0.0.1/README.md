@@ -9,14 +9,14 @@ overview. Unsupported syntax fails the build rather than being ignored. A
 client-facing authoring capability absent from this reference is not supported
 by this SDK.
 
-| Reference | Covers |
-| --- | --- |
-| [KartUI components](kartui.md) | `.ui` syntax, props, setup, callbacks, views, composition, loops, conditions, layouts |
-| [KartUI styles](styles.md) | every supported CSS-like selector, property, value, state, responsive rule, layout, image/icon, and transition |
-| [Themes and typography](theme.md) | `theme.toml`, tokens, nine-slices, font roles, image ownership |
-| [`karty.toml`](karty-toml.md) | every project manifest section, key, default, type, and validation rule |
-| [Assets and packaging](assets.md) | every `karty.toml` asset declaration, levels, stripping, cartridges |
-| Generated Go API | `.karty/engine/*.go` and `.karty/ui/*.go` via gopls or `go doc`; generated signatures are authoritative |
+| Reference                         | Covers                                                                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [KartUI components](kartui.md)    | .kui single-file syntax, props, setup, callbacks, views, composition, loops, conditions, layouts               |
+| [KartUI styles](styles.md)        | every supported CSS-like selector, property, value, state, responsive rule, layout, image/icon, and transition |
+| [Themes and typography](theme.md) | `theme.toml`, tokens, nine-slices, font roles, image ownership                                                 |
+| [`karty.toml`](karty-toml.md)     | every project manifest section, key, default, type, and validation rule                                        |
+| [Assets and packaging](assets.md) | every `karty.toml` asset declaration, levels, stripping, cartridges                                            |
+| Generated Go API                  | `.karty/engine/*.go` and `.karty/ui/*.go` via gopls or `go doc`; generated signatures are authoritative        |
 
 SDK 0.0.1 uses API 0.0.1. Regenerate this directory with `karty build` after
 changing the pinned SDK. SDK maintainers must update this reference and its

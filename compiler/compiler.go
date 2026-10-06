@@ -3,12 +3,10 @@
 package uicompiler
 
 import (
-	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/scanner"
 	"go/token"
@@ -46,8 +44,6 @@ type Component struct {
 	conditionDepth                         int
 	Setup, Preamble                        string
 	Back                                   string
-	hasSetup                               bool
-	setupSignature                         string
 	Parameters                             []Parameter
 	Bindings                               []Binding
 	Template                               ui.Template
@@ -102,8 +98,7 @@ func (component *Component) StaticTemplate() (ui.Template, error) {
 	return component.Template, nil
 }
 
-// Compile accepts one KartUI component with optional Go imports/types and setup.
-// Legacy exported scalar props remain supported; local models compile with the client.
+// Compile accepts one .kui single-file component with optional Go setup and indented styles.
 func Compile(source string, data []byte) (Component, error) {
 	return CompileWithTheme(source, data, DefaultTheme())
 }
@@ -113,7 +108,6 @@ func CompileWithTheme(source string, data []byte, theme Theme) (Component, error
 	return compileWithLayouts(source, data, theme, nil)
 }
 
-//nolint:gocognit,gocyclo,maintidx // One ordered compilation pipeline keeps source attribution and validation together.
 func compileWithLayouts(source string, data []byte, theme Theme, layouts map[string]Layout) (Component, error) {
 	result := Component{Source: source, Template: ui.Template{Version: 1}}
 	if len(data) > ui.MaxAssetBytes {
@@ -124,108 +118,26 @@ func compileWithLayouts(source string, data []byte, theme Theme, layouts map[str
 		return result, err
 	}
 
-	text := strings.TrimSpace(string(data))
-
-	var styleDocument, markupDocument styleSource
-
-	if single, ok, err := parseSingleFileComponent(source, data); ok {
-		if err != nil {
-			return result, err
-		}
-
-		styleDocument = single.styleDocument
-
-		markupDocument = single.templateDocument
-		for _, warning := range single.styleWarnings {
-			appendStyleWarning(&result.styleWarnings, warning)
-		}
-
-		text, err = single.componentSource(source)
-		if err != nil {
-			return result, err
-		}
-
-		text = strings.TrimSpace(text)
-	} else if err != nil {
-		return result, err
-	}
-
-	text, styleText, err := splitStyle(text)
-	if err != nil {
-		return result, fmt.Errorf("%s: %w", source, err)
-	}
-
-	text, err = result.preamble(source, text)
+	single, err := parseSingleFileComponent(source, data)
 	if err != nil {
 		return result, err
 	}
 
-	opening := strings.IndexByte(text, '{')
-	if !strings.HasPrefix(text, "kartui ") || opening < 0 || !strings.HasSuffix(text, "}") {
-		return result, fmt.Errorf("%s: expected kartui Name(parameters) { markup }: %w", source, ui.ErrTemplate)
-	}
-
-	signature := strings.TrimSpace(text[len("kartui "):opening])
-	if result.setupSignature != "" {
-		signature = result.setupSignature
-	}
-
-	declaration, err := parser.ParseFile(
-		token.NewFileSet(),
-		source,
-		"package engine\nfunc "+signature+" {}",
-		0,
-	)
+	result.Name, err = inferredComponentName(source)
 	if err != nil {
 		return result, err
 	}
 
-	function, ok := declaration.Decls[0].(*ast.FuncDecl)
-	if !ok || function.Type.Results != nil || function.Recv != nil || function.Type.TypeParams != nil ||
-		!ast.IsExported(function.Name.Name) {
-		return result, fmt.Errorf("%s: component must have an exported name and no result: %w", source, ui.ErrTemplate)
+	result.Local = single.hasScript
+
+	result.Preamble, result.Setup, result.Parameters = single.preamble, single.setup, single.parameters
+
+	styleDocument, markupDocument := single.styleDocument, single.templateDocument
+	for _, warning := range single.styleWarnings {
+		appendStyleWarning(&result.styleWarnings, warning)
 	}
 
-	result.Name = function.Name.Name
-	if result.setupSignature != "" && strings.TrimSpace(text[len("kartui "):opening]) != result.Name {
-		return result, fmt.Errorf("%s: expected kartui %s without parameters to match setup: %w", source, result.Name, ui.ErrTemplate)
-	}
-
-	body := strings.TrimSpace(text[opening+1 : len(text)-1])
-	if strings.HasPrefix(body, "setup {") {
-		if result.hasSetup {
-			return result, fmt.Errorf("%s: duplicate setup block: %w", source, ui.ErrTemplate)
-		}
-
-		end, err := expressionEnd(body[len("setup "):])
-		if err != nil {
-			return result, err
-		}
-
-		result.Setup = body[len("setup {") : len("setup ")+end]
-		body = body[len("setup ")+end+1:]
-		result.Local = true
-	}
-
-	for _, field := range function.Type.Params.List {
-		for _, name := range field.Names {
-			if !ast.IsExported(name.Name) {
-				result.Local = true
-			}
-		}
-	}
-
-	if err := result.parameters(source, function); err != nil {
-		return result, err
-	}
-
-	if markupDocument.original == "" {
-		markupDocument = sourceDocument(source, string(data), body)
-	}
-
-	if styleDocument.original == "" {
-		styleDocument = sourceDocument(source, string(data), styleText)
-	}
+	body := strings.TrimSpace(single.template)
 
 	markupDocument = trimMarkupDocument(markupDocument)
 
@@ -975,7 +887,7 @@ func DecodeSource(source string, data []byte) (ui.Template, error) {
 }
 
 func DecodeSourceWithTheme(source string, data []byte, theme Theme) (ui.Template, error) {
-	if !strings.HasSuffix(source, ".ui") && !strings.HasSuffix(source, ".kui") {
+	if !strings.HasSuffix(source, ".kui") {
 		return ui.Decode(data)
 	}
 
@@ -985,75 +897,4 @@ func DecodeSourceWithTheme(source string, data []byte, theme Theme) (ui.Template
 	}
 
 	return component.StaticTemplate()
-}
-
-func (component *Component) parameters(source string, function *ast.FuncDecl) error {
-	seen := map[string]bool{}
-
-	for _, field := range function.Type.Params.List {
-		var output bytes.Buffer
-		if err := format.Node(&output, token.NewFileSet(), field.Type); err != nil {
-			return err
-		}
-
-		kind := output.String()
-		if !component.Local {
-			switch kind {
-			case "string", "bool", "[]UIRow", "func()", "func(uint32)", "int32", "uint32", "func(bool)", "func(string)", "func(int32)":
-			default:
-				return fmt.Errorf("%s: unsupported presentation parameter type %s: %w", source, kind, ui.ErrTemplate)
-			}
-		}
-
-		if len(field.Names) == 0 {
-			return fmt.Errorf("%s: parameters must be named: %w", source, ui.ErrTemplate)
-		}
-
-		for _, name := range field.Names {
-			if (!component.Local && !ast.IsExported(name.Name)) || seen[name.Name] || name.Name == "invalidate" ||
-				strings.HasPrefix(name.Name, "_karty") {
-				return fmt.Errorf("%s: parameter %s must be unique and exported: %w", source, name, ui.ErrTemplate)
-			}
-
-			seen[name.Name] = true
-			component.Parameters = append(component.Parameters, Parameter{Name: name.Name, Type: kind})
-		}
-	}
-
-	return nil
-}
-
-func (component *Component) preamble(source, text string) (string, error) {
-	if strings.HasPrefix(text, "kartui ") {
-		return text, nil
-	}
-
-	index := strings.Index(text, "\nkartui ")
-	if index < 0 {
-		return "", fmt.Errorf("%s: imports and types must precede a kartui declaration: %w", source, ui.ErrTemplate)
-	}
-
-	var err error
-
-	component.Preamble, err = component.separateSetup(text[:index])
-	if err != nil {
-		return "", err
-	}
-
-	parsed, err := parser.ParseFile(token.NewFileSet(), source, "package main\n"+component.Preamble, 0)
-	if err != nil {
-		return "", err
-	}
-
-	for _, declaration := range parsed.Decls {
-		decl, ok := declaration.(*ast.GenDecl)
-		if !ok || (decl.Tok != token.IMPORT && decl.Tok != token.TYPE) {
-			return "", ui.ErrTemplate
-		}
-	}
-
-	text = strings.TrimSpace(text[index:])
-	component.Local = component.Local || len(parsed.Decls) > 0
-
-	return text, nil
 }

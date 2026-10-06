@@ -1,0 +1,10 @@
+# Derived output, third-party dependencies and local contributor state.
+**/dist/**
+**/tmp/**
+**/node_modules/**
+**/.karty/**
+**/.codex/**
+**/.agents/**
+**/vendor/**
+# Regenerate snapshots with their owning generator.
+**/*.generated.*

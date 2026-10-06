@@ -21,7 +21,9 @@ func repeatedLayouts(tb testing.TB, depth int) map[string]Layout {
 
 		name := fmt.Sprintf("L%d", index)
 
-		layout, err := parseLayout(name+".ui", []byte("layout "+name+" { <panel>"+inside+"<slot/></panel> }"))
+		layout, err := parseLayout(name+".kui", []byte(`<template>
+<panel>`+inside+`<slot/></panel>
+</template>`))
 		if err != nil {
 			tb.Fatal(err)
 		}
@@ -55,7 +57,9 @@ func TestRepeatedLayoutsStopAtElementLimit(t *testing.T) {
 func TestLayoutElementAndDepthBoundaries(t *testing.T) {
 	t.Parallel()
 
-	layout, err := parseLayout("shell.ui", []byte(`layout Shell { <panel><slot/></panel> }`))
+	layout, err := parseLayout("shell.kui", []byte(`<template>
+<panel><slot/></panel>
+</template>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,9 +67,11 @@ func TestLayoutElementAndDepthBoundaries(t *testing.T) {
 	layouts := map[string]Layout{"Shell": layout}
 
 	for _, count := range []int{ui.MaxElements, ui.MaxElements + 1} {
-		source := []byte("kartui Menu() { <Shell>" + strings.Repeat("<label/>", count) + "</Shell> }")
+		source := []byte(`<template>
+<Shell>` + strings.Repeat("<label/>", count) + `</Shell>
+</template>`)
 
-		_, err := compileWithLayouts("menu.ui", source, DefaultTheme(), layouts)
+		_, err := compileWithLayouts("menu.kui", source, DefaultTheme(), layouts)
 		if (count == ui.MaxElements) != (err == nil) {
 			t.Fatalf("element boundary %d: %v", count, err)
 		}
@@ -84,9 +90,11 @@ func TestLayoutElementAndDepthBoundaries(t *testing.T) {
 				selectedLayouts = nil
 			}
 
-			source := []byte("kartui Menu() { <" + root + ">" + markup + "</" + root + "> }")
+			source := []byte(`<template>
+<` + root + `>` + markup + `</` + root + `>
+</template>`)
 
-			_, err := compileWithLayouts("menu.ui", source, DefaultTheme(), selectedLayouts)
+			_, err := compileWithLayouts("menu.kui", source, DefaultTheme(), selectedLayouts)
 			if (panels < maxElementDepth) != (err == nil) {
 				t.Fatalf("panel depth %d, layout=%t: %v", panels, useLayout, err)
 			}
@@ -97,7 +105,9 @@ func TestLayoutElementAndDepthBoundaries(t *testing.T) {
 func TestRepeatedSlotFillsStopDuringProjection(t *testing.T) {
 	t.Parallel()
 
-	layout, err := parseLayout("repeat.ui", []byte("layout Repeat { <panel>"+strings.Repeat("<slot/>", ui.MaxElements)+"</panel> }"))
+	layout, err := parseLayout("repeat.kui", []byte(`<template>
+<panel>`+strings.Repeat("<slot/>", ui.MaxElements)+`</panel>
+</template>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,13 +135,15 @@ func TestRepeatedSlotFillsStopDuringProjection(t *testing.T) {
 
 func BenchmarkRepeatedLayoutRejection(b *testing.B) {
 	layouts := repeatedLayouts(b, 12)
-	source := []byte("kartui Menu() { <L0/> }")
+	source := []byte(`<template>
+<L0/>
+</template>`)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for range b.N {
-		if _, err := compileWithLayouts("menu.ui", source, DefaultTheme(), layouts); err == nil {
+		if _, err := compileWithLayouts("menu.kui", source, DefaultTheme(), layouts); err == nil {
 			b.Fatal("accepted oversized layout")
 		}
 	}

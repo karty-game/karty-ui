@@ -35,26 +35,26 @@ role = "display"             # required unique: body, display, or mono
 source = "assets/title.otf"  # required confined .ttf or .otf regular file
 
 [[assets.layout]]             # zero or more build-time KartUI layouts
-source = "ui/layouts/window.ui" # required unique confined regular file
+source = "ui/layouts/window-layout.kui" # required unique confined regular file
 
 [[assets.ui]]                 # zero or more runtime UI assets
 name = "ui.menu"             # required unique logical UI asset name
-source = "ui/views/menu.ui"  # required confined regular file
+source = "ui/views/menu.kui"  # required confined regular file
 ```
 
 ## `[project]`
 
-| Key | Type/default | Rule |
-| --- | --- | --- |
-| `name` | string, required | Non-empty project display/name value. |
-| `compiler` | `tinygo` default | `tinygo` supports native and web; `go` is native-only. |
-| `resolution.width` | integer, `960` | Greater than zero; logical world width. |
-| `resolution.height` | integer, `540` | Greater than zero; logical world height. |
+| Key                 | Type/default     | Rule                                                   |
+| ------------------- | ---------------- | ------------------------------------------------------ |
+| `name`              | string, required | Non-empty project display/name value.                  |
+| `compiler`          | `tinygo` default | `tinygo` supports native and web; `go` is native-only. |
+| `resolution.width`  | integer, `960`   | Greater than zero; logical world width.                |
+| `resolution.height` | integer, `540`   | Greater than zero; logical world height.               |
 
 ## `[sdk]`
 
-| Key | Type/default | Rule |
-| --- | --- | --- |
+| Key       | Type/default     | Rule                                                                                                   |
+| --------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
 | `version` | string, required | Exact SDK manifest version. It selects WIT/API, tools, templates, asset processors, and `.karty/docs`. |
 
 ## `[assets.theme]`
@@ -65,13 +65,13 @@ Theme files are build inputs, not staged loose resources.
 
 ## Automatic discovery
 
-| Conventional source | Inferred result |
-| --- | --- |
-| `assets/textures/**/*.png` | texture name from path: `sprites/player.png` → `sprites.player`; hyphens become dots |
-| `ui/**/*.ui` or legacy `assets/ui/**/*.ui` | UI asset `ui.<filename>`; layouts excluded |
-| `ui/layouts/**/*.ui` | build-time layouts |
-| `ui/theme.toml`, then legacy `assets/ui/theme.toml` | project theme |
-| `assets/fonts/body.ttf`, `display.ttf`, `mono.ttf` (or `.otf`) | matching typography role |
+| Conventional source                                            | Inferred result                                                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `assets/textures/**/*.png`                                     | texture name from path: `sprites/player.png` → `sprites.player`; hyphens become dots |
+| `ui/**/*.kui` or `assets/ui/**/*.kui`                          | UI asset `ui.<filename>`; layouts excluded                                           |
+| `ui/layouts/**/*.kui`                                          | build-time layouts                                                                   |
+| `ui/theme.toml`, then `assets/ui/theme.toml`                   | project theme                                                                        |
+| `assets/fonts/body.ttf`, `display.ttf`, `mono.ttf` (or `.otf`) | matching typography role                                                             |
 
 Discovery produces the same resolved list used for generated constants,
 validation, stripping, hashing, and cartridge packaging. Colliding inferred
@@ -80,12 +80,12 @@ unconventional locations, or custom font sources.
 
 ## `[[assets.texture]]` override
 
-| Key | Type/default | Rule |
-| --- | --- | --- |
-| `name` | optional string | Alias for inferred logical texture ID; cannot begin `karty.`. |
-| `source` | string, required | Confined regular source file. |
-| `profile` | `sprite` default | SDK 0.11 supports `sprite`, `interface`, `environment`. |
-| `keep` | `false` default | Retain the game texture even if static typed-usage analysis cannot reach it. |
+| Key       | Type/default     | Rule                                                                         |
+| --------- | ---------------- | ---------------------------------------------------------------------------- |
+| `name`    | optional string  | Alias for inferred logical texture ID; cannot begin `karty.`.                |
+| `source`  | string, required | Confined regular source file.                                                |
+| `profile` | `sprite` default | SDK 0.11 supports `sprite`, `interface`, `environment`.                      |
+| `keep`    | `false` default  | Retain the game texture even if static typed-usage analysis cannot reach it. |
 
 The SDK-pinned processor validates/normalizes supported PNG source data. Typed
 texture, theme-image, UI, and renderer references retain assets automatically;

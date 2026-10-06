@@ -64,7 +64,6 @@ func TestIndentedStylesRejectAmbiguityAndUnboundedExpansion(t *testing.T) {
 	t.Parallel()
 
 	cases := []string{
-		".screen\n\twidth: 50%", ".screen\n  width: 50%;",
 		".screen\n  width: 50%\n height: 20px",
 		".screen\n  &:hover\n    &:focus\n      &:pressed\n        color: #ffffff",
 		"$big: " + strings.Repeat("x", 4096) + "\n.screen\n" + strings.Repeat("  color: $big\n", 32),
@@ -84,7 +83,16 @@ func TestStyleDimensionsAndPixelUnits(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []string{"0%", "100%", "0.01%", "33.33%", "0px", "2048px", "64", "auto"} {
-		source := "kartui Size() { <panel><label>Size</label></panel> }\nstyle { panel { width: " + value + "; padding: 8px; gap: 4px; } }"
+		source := `<template>
+<panel><label>Size</label></panel>
+</template>
+
+<style>
+panel
+  width: ` + value + `
+  padding: 8px
+  gap: 4px
+</style>`
 
 		component, err := Compile("size.kui", []byte(source))
 		if err != nil || component.Template.Version != ui.SchemaSizing {
@@ -95,7 +103,14 @@ func TestStyleDimensionsAndPixelUnits(t *testing.T) {
 	for _, value := range []string{"-1%", "+1%", "100.01%", "101%", "1.001%", "1.%", "NaN%", "2049px", "1em", "1.5px"} {
 		component, err := Compile(
 			"size.kui",
-			[]byte("kartui Size() { <panel><label>Size</label></panel> }\nstyle { panel { width: "+value+"; } }"),
+			[]byte(`<template>
+<panel><label>Size</label></panel>
+</template>
+
+<style>
+panel
+  width: `+value+`
+</style>`),
 		)
 		if err != nil || len(component.StyleWarnings()) == 0 || component.Template.Panel.Set2&ui.Style2Width != 0 {
 			t.Fatalf("invalid dimension should warn and be omitted: %s: %v", value, err)
@@ -199,5 +214,15 @@ func TestIndentedStylesBoundNestedAndMediaVariableExpansion(t *testing.T) {
 		if !errors.Is(err, ui.ErrTemplate) || !strings.Contains(err.Error(), "expanded styles") {
 			t.Fatalf("unbounded media=%t expansion: %v", media, err)
 		}
+	}
+}
+
+func TestBraceStylesAreIgnoredWithWarning(t *testing.T) {
+	t.Parallel()
+
+	component, err := Compile("menu.kui", []byte(`<template><panel><label>Ready</label></panel></template>
+<style>panel { width: 80%; }</style>`))
+	if err != nil || len(component.StyleWarnings()) != 1 || component.Template.Panel.Set2 != 0 {
+		t.Fatalf("brace styles: %v %+v", err, component.Diagnostics())
 	}
 }

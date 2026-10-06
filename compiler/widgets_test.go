@@ -10,16 +10,21 @@ func TestWidgetBindings(t *testing.T) {
 	t.Parallel()
 
 	component, err := Compile(
-		"controls.ui",
+		"controls.kui",
 		[]byte(
-			`kartui Controls(Checked bool, Name string, Volume int32, Selected uint32, Rows []UIRow, Check func(bool), Input func(string), Slide func(int32), Select func(uint32)) {
+			`<template>
 <panel modal="true">
 <checkbox checked={Checked} onChange={Check} tooltip="Enable audio">Audio</checkbox>
 <input value={Name} onChange={Input} placeholder="Player name"/>
 <slider min="-10" max="90" value={Volume} onChange={Slide}/>
 <combo rows={Rows} selected={Selected} onChange={Select}/>
 <tabs selected={Selected} onChange={Select}><tab title="General"><label>Settings</label></tab><tab title="Video"><button onClick={func(){}}>Apply</button></tab></tabs>
-</panel> }`,
+</panel>
+</template>
+
+<script setup lang="go">
+func setup(Checked bool, Name string, Volume int32, Selected uint32, Rows []UIRow, Check func(bool), Input func(string), Slide func(int32), Select func(uint32)) {}
+</script>`,
 		),
 	)
 	if err != nil {
@@ -70,7 +75,9 @@ func TestRejectInvalidWidgets(t *testing.T) {
 		t.Run(markup, func(t *testing.T) {
 			t.Parallel()
 
-			if _, err := Compile("bad.ui", []byte("kartui Bad() { <panel modal=\"true\">"+markup+"</panel> }")); err == nil {
+			if _, err := Compile("bad.kui", []byte(`<template>
+<panel modal="true">`+markup+`</panel>
+</template>`)); err == nil {
 				t.Fatal("accepted invalid widget")
 			}
 		})

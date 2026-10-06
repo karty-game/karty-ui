@@ -1,14 +1,10 @@
 # Indented styles and container-relative dimensions
 
-These additions require the SDK 0.0.9 candidate when dimensions are used
-(presentation schema 11). Existing brace styles and SDK compatibility remain
-unchanged. Indentation, variables and short property names compile away; only
-`width` and `height` require the new presentation schema.
+Explicit dimensions require SDK 0.0.9 (presentation schema 11). Indentation,
+variables and short property names compile away; the host receives resolved styles.
 
-A single-file `.kui` component may use `<style lang="sass">`. For less boilerplate,
-plain `<style>` also accepts indented syntax when its contents have no braces.
-Existing brace-based contents still use the original parser. This is a bounded,
-Sass-inspired syntax implemented by KartUI, with no Sass executable dependency.
+`<style>` accepts only indented Sass-inspired rules. `lang="sass"` is optional.
+KartUI implements this bounded syntax without a Sass executable dependency.
 
 ```kui
 <template>
@@ -38,7 +34,7 @@ $space: theme.spacing.gap
 ```
 
 Indent with spaces. Each sibling has the same indentation; each child is
-indented further. Braces, semicolons and tabs are rejected in indented styles.
+indented further. A block containing braces, semicolons or tabs is ignored with a warning.
 Blank lines and `//` comments are allowed. Top-level `$name: value` variables
 are component-local, declared once, and may reference a literal, theme token,
 or an already declared variable. A property value can reference one whole
@@ -53,14 +49,14 @@ indented selectors and nested states; the existing single-breakpoint bounds
 remain 240 through 1024 logical pixels. Layout SFCs accept the same syntax and
 resolve their variables before projection into a component.
 
-Short names work in both style syntaxes:
+Use short names for layout properties:
 
-| Short name | Existing name |
-| --- | --- |
-| `direction` | `flex-direction` |
-| `align` | `align-items` |
-| `justify` | `justify-content` |
-| `grow` | `flex-grow` |
+| Short name  | Existing name     |
+| ----------- | ----------------- |
+| `direction` | `flex-direction`  |
+| `align`     | `align-items`     |
+| `justify`   | `justify-content` |
+| `grow`      | `flex-grow`       |
 
 Using both names for the same property in one rule warns and ignores the later
 declaration.
@@ -93,14 +89,14 @@ a definite height. This avoids cyclic percentage-driven auto measurement.
 
 The runtime uses bounded integer pixel/percentage values and does not parse
 style source or resolve variables. The VS Code grammar and snippets recognize
-both forms, nested states, variables, short names and dimensions.
+indented rules, nested states, variables, short names and dimensions.
 
 ## Ignored styles and build warnings
 
 Unsupported properties or selectors, invalid values, unresolved tokens/variables,
 and out-of-range sizes warn and are ignored. Other valid declarations still
 apply. An invalid override preserves the previous valid value; without one,
-the widget uses its usual default. This applies to brace and indented styles,
+the widget uses its usual default. This applies to component and
 layout styles and responsive overrides. Shared classes apply each property only
 to widgets that support it, warning for unsupported targets.
 

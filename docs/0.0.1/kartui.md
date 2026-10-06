@@ -4,7 +4,7 @@
 
 # KartUI components
 
-Use `.kui` single-file components for new interfaces. The CLI discovers screens
+Author interfaces as `.kui` single-file components. The CLI discovers screens
 and children under `ui/` or `assets/ui/`, and reusable layouts under `ui/layouts/`.
 Use `karty.toml` for explicit overrides or files outside those conventions.
 `ui/views/` and `ui/components/` are useful organizational conventions.
@@ -16,6 +16,13 @@ Save this as `inventory.kui`; the filename supplies the component name `Inventor
 The template is required. Script and style blocks are optional.
 
 ```kui
+<template>
+  <panel modal="true" onBack={props.Close} class="screen">
+    <label>Inventory</label>
+    <button enabled={props.Count() > 0} onClick={props.Close}>Close</button>
+  </panel>
+</template>
+
 <script setup lang="go">
 type InventoryProps struct {
     Count func() int
@@ -24,13 +31,6 @@ type InventoryProps struct {
 
 func setup(props InventoryProps) {}
 </script>
-
-<template>
-  <panel modal="true" onBack={props.Close} class="screen">
-    <label>Inventory</label>
-    <button enabled={props.Count() > 0} onClick={props.Close}>Close</button>
-  </panel>
-</template>
 
 <style>
 .screen
@@ -43,8 +43,9 @@ func setup(props InventoryProps) {}
 ```
 
 SDK 0.0.9 candidate supports the new widgets and explicit dimensions. Dimensions
-use presentation schema 11; widgets use schema 10. Existing styles and legacy
-components remain usable with their compatible earlier SDKs.
+use presentation schema 11; widgets use schema 10. The compiler accepts only
+`.kui` single-file components. Legacy declarations and `.ui` authoring files
+must be migrated.
 
 `func setup(props Type)` runs once per mounted instance. Its locals and closures
 are instance-local and available in template expressions. Call `invalidate()`
@@ -66,16 +67,16 @@ Use [indented styles](indented-styles.md) for the default compact style syntax,
 
 ## Markup
 
-| Element | Attributes | Notes |
-| --- | --- | --- |
-| `panel` | `class`; root: `modal="true|false"`, modal `onBack={ func() }` | Root must be a panel; nested panels create layout parents. |
-| `label` | `class` | Static text is its body. |
-| `image` | `class` | Style `image` chooses a typed theme image. |
-| `button` | `class`, `enabled={ bool }`, `onClick={ func() }` | Leaf control. |
-| `list` | `class`, `rows={ []UIRow }`, `onClick={ func(uint32) }` | Host-owned rows. |
-| `ComponentName` | `props={ TypedValue }`; in a loop `key={ stringOrUint32 }` | Must be an exported project component. |
-| `fragment` | `slot="name"` | Only while invoking a layout. |
-| `slot` | optional `name="name"` | Only inside a `layout` declaration. |
+| Element         | Attributes                                                 | Notes                                      |
+| --------------- | ---------------------------------------------------------- | ------------------------------------------ |
+| `panel`         | `class`; root: `modal="true                                | false"`, modal `onBack={ func() }`         | Root must be a panel; nested panels create layout parents. |
+| `label`         | `class`                                                    | Static text is its body.                   |
+| `image`         | `class`                                                    | Style `image` chooses a typed theme image. |
+| `button`        | `class`, `enabled={ bool }`, `onClick={ func() }`          | Leaf control.                              |
+| `list`          | `class`, `rows={ []UIRow }`, `onClick={ func(uint32) }`    | Host-owned rows.                           |
+| `ComponentName` | `props={ TypedValue }`; in a loop `key={ stringOrUint32 }` | Must be an exported project component.     |
+| `fragment`      | `slot="name"`                                              | Only while invoking a layout.              |
+| `slot`          | optional `name="name"`                                     | Only inside a layout template.             |
 
 Dynamic attributes use Go expressions in `{ ... }`. `class` is one CSS
 identifier, not a list. Panels cannot be controls; labels do not click; controls are leaves except `tabs`/`tab` containers. Unknown attributes fail compilation.
@@ -168,11 +169,3 @@ style warnings; `StyleWarnings()` returns formatted strings. `SourceError` expos
 compiler error locations and preserves its cause for `errors.Is`/`errors.As`.
 Go type errors from generated client compilation may still refer to generated Go;
 this compiler does not replace Go type checking or provide editor diagnostics.
-
-## Legacy compatibility
-
-The compiler continues to accept `.ui` and `.kui` files written as
-`kartui Name(...) { ... }`, an optional `setup Name(...) { ... }`, and a brace
-`style { ... }` block. Brace styles also work inside SFC `<style>` blocks.
-Legacy syntax is retained for existing projects; new examples and editor snippets
-use SFC components and indented styles.

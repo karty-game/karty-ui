@@ -35,21 +35,39 @@ func TestProjectInteractiveHUDChildSchema(t *testing.T) {
 
 			root := t.TempDir()
 			child := "Controls"
-			entries := []Source{{Name: "controls", Source: "controls.ui"}}
+			entries := []Source{{Name: "controls", Source: "controls.kui"}}
 
 			sources := map[string]string{
-				"controls.ui": `kartui Controls(move func()) { <panel modal="` + test.childModal + `">` + test.childMarkup + `</panel> }`,
+				"controls.kui": `<template>
+<panel modal="` + test.childModal + `">` + test.childMarkup + `</panel>
+</template>
+
+<script setup lang="go">
+func setup(move func()) {}
+</script>`,
 			}
 			if test.nested {
 				child = "Middle"
 
-				entries = append(entries, Source{Name: "middle", Source: "middle.ui"})
-				sources["middle.ui"] = `kartui Middle(move func()) { <panel modal="` + test.childModal + `"><Controls props={ move }/></panel> }`
+				entries = append(entries, Source{Name: "middle", Source: "middle.kui"})
+				sources["middle.kui"] = `<template>
+<panel modal="` + test.childModal + `"><Controls props={ move }/></panel>
+</template>
+
+<script setup lang="go">
+func setup(move func()) {}
+</script>`
 			}
 
-			entries = append(entries, Source{Name: "hud", Source: "hud.ui"})
+			entries = append(entries, Source{Name: "hud", Source: "hud.kui"})
 
-			sources["hud.ui"] = `kartui HUD(move func()) { <panel modal="` + test.rootModal + `"><` + child + ` props={ move }/></panel> }`
+			sources["hud.kui"] = `<template>
+<panel modal="` + test.rootModal + `"><` + child + ` props={ move }/></panel>
+</template>
+
+<script setup lang="go">
+func setup(move func()) {}
+</script>`
 			for name, source := range sources {
 				if err := os.WriteFile(filepath.Join(root, name), []byte(source), 0o600); err != nil {
 					t.Fatal(err)
@@ -57,7 +75,7 @@ func TestProjectInteractiveHUDChildSchema(t *testing.T) {
 			}
 
 			// Resolve parents both before and after their children in the input.
-			versions := map[string]uint32{"HUD": test.rootVersion, "Controls": test.childVersion, "Middle": test.middleVersion}
+			versions := map[string]uint32{"Hud": test.rootVersion, "Controls": test.childVersion, "Middle": test.middleVersion}
 			assertHUDProjectSchemas(t, root, entries, versions)
 			slices.Reverse(entries)
 			assertHUDProjectSchemas(t, root, entries, versions)
@@ -94,14 +112,26 @@ func TestInteractiveHUDDynamicChildSchema(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			root, err := Compile("hud.ui", []byte("kartui HUD(move func()) { <panel modal=\"false\">\n"+test.body+"\n</panel> }"))
+			root, err := Compile("hud.kui", []byte(`<template>
+<panel modal="false">
+`+test.body+`
+</panel>
+</template>
+
+<script setup lang="go">
+func setup(move func()) {}
+</script>`))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			child, err := Compile("controls.ui", []byte(`kartui Controls(move func()) {
+			child, err := Compile("controls.kui", []byte(`<template>
 <panel modal="false"><button onClick={ move }>Move</button></panel>
-}`))
+</template>
+
+<script setup lang="go">
+func setup(move func()) {}
+</script>`))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -121,9 +151,13 @@ func TestInteractiveHUDDynamicChildSchema(t *testing.T) {
 func TestCompileInteractiveNonmodalHUD(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("hud.ui", []byte(`kartui HUD(Move func()) {
+	component, err := Compile("hud.kui", []byte(`<template>
 <panel modal="false"><label>Walk</label><button onClick={ Move }>Forward</button></panel>
-}`))
+</template>
+
+<script setup lang="go">
+func setup(Move func()) {}
+</script>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,9 +167,13 @@ func TestCompileInteractiveNonmodalHUD(t *testing.T) {
 		t.Fatalf("incorrect HUD input policy: %+v", component.Template)
 	}
 
-	if _, err := Compile("bad.ui", []byte(`kartui Bad(Move func()) {
+	if _, err := Compile("bad.kui", []byte(`<template>
 <panel modal="false" onBack={ Move }><button onClick={ Move }>Forward</button></panel>
-}`)); err == nil {
+</template>
+
+<script setup lang="go">
+func setup(Move func()) {}
+</script>`)); err == nil {
 		t.Fatal("nonmodal HUD captured semantic Back")
 	}
 }

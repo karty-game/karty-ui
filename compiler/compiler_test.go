@@ -12,11 +12,16 @@ import (
 func TestCompile(t *testing.T) {
 	t.Parallel()
 
-	view, err := Compile("inventory.ui", []byte(`kartui Inventory(Title string, Enabled bool, Use func()) {
+	view, err := Compile("inventory.kui", []byte(`<template>
 <panel modal="true">
  <label>{ Title + " {items}" }</label>
  <button enabled={ Enabled } onClick={ Use }>Use &amp; refresh</button>
-</panel> }`))
+</panel>
+</template>
+
+<script setup lang="go">
+func setup(Title string, Enabled bool, Use func()) {}
+</script>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +36,11 @@ func TestCompile(t *testing.T) {
 func TestCompileSingleFileComponentUsesFileName(t *testing.T) {
 	t.Parallel()
 
-	source := `<script setup lang="go">
+	source := `<template>
+<panel modal="true"><label class="title">{ args.Title }</label><button onClick={ choose }>Play</button></panel>
+</template>
+
+<script setup lang="go">
 import "strings"
 
 type MenuProps struct { Title string; Select func() }
@@ -41,12 +50,9 @@ func setup(args MenuProps) {
 }
 </script>
 
-<template>
-<panel modal="true"><label class="title">{ args.Title }</label><button onClick={ choose }>Play</button></panel>
-</template>
-
 <style>
-.title { color: theme.colors.text; }
+.title
+  color: theme.colors.text
 </style>`
 
 	component, err := Compile("ui/views/menu.kui", []byte(source))
@@ -88,7 +94,10 @@ func TestParseSingleFileLayoutUsesFileName(t *testing.T) {
 	t.Parallel()
 
 	layout, err := parseLayout("ui/layouts/main-menu.kui", []byte(`<template><panel modal="true"><slot/></panel></template>
-<style>.screen { padding: 8; }</style>`))
+<style>
+.screen
+  padding: 8
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,20 +111,50 @@ func TestRejectUnsupportedSource(t *testing.T) {
 	t.Parallel()
 
 	for _, source := range []string{
-		`kartui Menu() { <panel><button>Missing handler</button></panel> }`,
-		`kartui Menu() { <panel><label style="red">x</label></panel> }`,
-		`kartui Menu() { <panel><label><panel/></label></panel> }`,
-		`kartui Menu(Title int) { <panel><label>x</label></panel> }`,
-		`kartui Menu(Title string, Title bool) { <panel><label>x</label></panel> }`,
-		`kartui Menu() { <panel><label>{ + }</label></panel> }`,
-		`kartui Menu() { <panel><label>{ title </label></panel> }`,
-		`kartui Menu() { <panel><label>Hello { title }</label></panel> }`,
-		`kartui Menu() { <panel><label rows={ Rows }>x</label></panel> }`,
-		`kartui Menu() { <!DOCTYPE panel><panel><label>x</label></panel> }`,
-		`kartui Menu() { <panel><label>x</label></panel><panel/> }`,
-		`kartui Menu() { <panel custom="true"><label>x</label></panel> }`,
+		`<template>
+<panel><button>Missing handler</button></panel>
+</template>`,
+		`<template>
+<panel><label style="red">x</label></panel>
+</template>`,
+		`<template>
+<panel><label><panel/></label></panel>
+</template>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<script setup lang="go">
+func setup(invalidate int) {}
+</script>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<script setup lang="go">
+func setup(Title string, Title bool) {}
+</script>`,
+		`<template>
+<panel><label>{ + }</label></panel>
+</template>`,
+		`<template><panel><label>{ title </label></panel></template>`,
+		`<template>
+<panel><label>Hello { title }</label></panel>
+</template>`,
+		`<template>
+<panel><label rows={ Rows }>x</label></panel>
+</template>`,
+		`<template>
+<!DOCTYPE panel><panel><label>x</label></panel>
+</template>`,
+		`<template>
+<panel><label>x</label></panel><panel/>
+</template>`,
+		`<template>
+<panel custom="true"><label>x</label></panel>
+</template>`,
 	} {
-		if _, err := Compile("broken.ui", []byte(source)); err == nil {
+		if _, err := Compile("broken.kui", []byte(source)); err == nil {
 			t.Errorf("accepted unsupported source: %s", source)
 		}
 	}
@@ -133,36 +172,63 @@ func TestCompileLayoutAndNestedPanels(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	layout := `layout WindowLayout {
+	layout := `<template>
 <panel modal="true" class="screen"><panel class="window"><slot name="title"><label>Untitled</label></slot><panel class="content"><slot/></panel></panel></panel>
-}
-style {
-.screen { background: theme.colors.surface; padding: 8; transition-duration: 180; }
-.window { padding: 12; gap: 6; max-width: 600; }
-.content { padding: 4; gap: 3; flex-direction: row; align-items: center; justify-content: space-between; overflow: scroll; }
-}`
-	view := `kartui Menu(Title string, Play func()) {
-<WindowLayout><fragment slot="title"><label class="title">{ Title }</label></fragment><button class="primary" onClick={ Play }>Play</button></WindowLayout>
-}
-style {
-.title { color: theme.colors.accent; }
-.primary { background: theme.colors.primary; color: theme.colors.text; }
-.primary:hover { background: theme.colors.primary-hover; color: theme.colors.accent; }
-.primary:pressed { background: theme.colors.primary-pressed; color: theme.colors.text; }
-.primary:disabled { background: #111111ff; color: #777777ff; }
-}`
+</template>
 
-	if err := os.WriteFile(filepath.Join(directory, "ui", "layouts", "window.ui"), []byte(layout), 0o600); err != nil {
+<style>
+.screen
+  background: theme.colors.surface
+  padding: 8
+  transition-duration: 180
+.window
+  padding: 12
+  gap: 6
+  max-width: 600
+.content
+  padding: 4
+  gap: 3
+  flex-direction: row
+  align-items: center
+  justify-content: space-between
+  overflow: scroll
+</style>`
+	view := `<template>
+<WindowLayout><fragment slot="title"><label class="title">{ Title }</label></fragment><button class="primary" onClick={ Play }>Play</button></WindowLayout>
+</template>
+
+<script setup lang="go">
+func setup(Title string, Play func()) {}
+</script>
+
+<style>
+.title
+  color: theme.colors.accent
+.primary
+  background: theme.colors.primary
+  color: theme.colors.text
+.primary:hover
+  background: theme.colors.primary-hover
+  color: theme.colors.accent
+.primary:pressed
+  background: theme.colors.primary-pressed
+  color: theme.colors.text
+.primary:disabled
+  background: #111111ff
+  color: #777777ff
+</style>`
+
+	if err := os.WriteFile(filepath.Join(directory, "ui", "layouts", "window-layout.kui"), []byte(layout), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := os.WriteFile(filepath.Join(directory, "ui", "views", "menu.ui"), []byte(view), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, "ui", "views", "menu.kui"), []byte(view), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	components, err := LoadProjectWithTheme(directory,
-		[]Source{{Name: "ui.menu", Source: "ui/views/menu.ui"}},
-		[]LayoutSource{{Source: "ui/layouts/window.ui"}}, "")
+		[]Source{{Name: "ui.menu", Source: "ui/views/menu.kui"}},
+		[]LayoutSource{{Source: "ui/layouts/window-layout.kui"}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,13 +266,15 @@ style {
 func TestLayoutRejectsUnknownSlot(t *testing.T) {
 	t.Parallel()
 
-	layout, err := parseLayout("window.ui", []byte(`layout WindowLayout { <panel><slot/></panel> }`))
+	layout, err := parseLayout("window-layout.kui", []byte(`<template>
+<panel><slot/></panel>
+</template>`))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	_, _, origins, err := expandLayouts(
-		"menu.ui",
+		"menu.kui",
 		`<WindowLayout><fragment slot="missing"><label>x</label></fragment></WindowLayout>`, styleSource{},
 		map[string]Layout{"WindowLayout": layout},
 	)
@@ -218,14 +286,18 @@ func TestLayoutRejectsUnknownSlot(t *testing.T) {
 func TestLayoutAlwaysSelectsSchemaFive(t *testing.T) {
 	t.Parallel()
 
-	layout, err := parseLayout("plain.ui", []byte(`layout PlainLayout { <panel modal="true"><slot/></panel> }`))
+	layout, err := parseLayout("plain-layout.kui", []byte(`<template>
+<panel modal="true"><slot/></panel>
+</template>`))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	component, err := compileWithLayouts(
-		"menu.ui",
-		[]byte(`kartui Menu() { <PlainLayout><label>Menu</label></PlainLayout> }`),
+		"menu.kui",
+		[]byte(`<template>
+<PlainLayout><label>Menu</label></PlainLayout>
+</template>`),
 		DefaultTheme(),
 		map[string]Layout{"PlainLayout": layout},
 	)
@@ -241,7 +313,9 @@ func TestLayoutAlwaysSelectsSchemaFive(t *testing.T) {
 func TestLevelStaticAndDynamic(t *testing.T) {
 	t.Parallel()
 
-	if _, err := DecodeSource("hud.ui", []byte(`kartui Hud() { <panel><label>My level</label></panel> }`)); err != nil {
+	if _, err := DecodeSource("hud.kui", []byte(`<template>
+<panel><label>My level</label></panel>
+</template>`)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -250,7 +324,13 @@ func TestLevelStaticAndDynamic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := DecodeSource("hud.ui", []byte(`kartui Hud(Title string) { <panel><label>{ Title }</label></panel> }`)); err == nil {
+	if _, err := DecodeSource("hud.kui", []byte(`<template>
+<panel><label>{ Title }</label></panel>
+</template>
+
+<script setup lang="go">
+func setup(Title string) {}
+</script>`)); err == nil {
 		t.Fatal("silently dropped dynamic level binding")
 	}
 }
@@ -258,13 +338,19 @@ func TestLevelStaticAndDynamic(t *testing.T) {
 func TestLocalUISetup(t *testing.T) {
 	t.Parallel()
 
-	source := `import "strconv"
-kartui Inventory(game *Game) {
- setup { message := "}"; count := 0; click := func() { count++; message = strconv.Itoa(count); invalidate() } }
- <panel modal="true"><label>{ message }</label><button onClick={ click }>Click</button></panel>
-}`
+	source := `<template>
+<panel modal="true"><label>{ message }</label><button onClick={ click }>Click</button></panel>
+</template>
 
-	view, err := Compile("inventory.ui", []byte(source))
+<script setup lang="go">
+import "strconv"
+
+func setup(game *Game) {
+message := "}"; count := 0; click := func() { count++; message = strconv.Itoa(count); invalidate() }
+}
+</script>`
+
+	view, err := Compile("inventory.kui", []byte(source))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +359,7 @@ kartui Inventory(game *Game) {
 		t.Fatalf("missing local Go: %+v", view)
 	}
 
-	if _, err := DecodeSource("inventory.ui", []byte(source)); err == nil {
+	if _, err := DecodeSource("inventory.kui", []byte(source)); err == nil {
 		t.Fatal("executed client code in passive level asset")
 	}
 }
@@ -281,8 +367,15 @@ kartui Inventory(game *Game) {
 func TestLocalUIProps(t *testing.T) {
 	t.Parallel()
 
-	view, err := Compile("inventory.ui", []byte(`type InventoryProps struct { Title string; Use func() }
-kartui Inventory(props InventoryProps) { <panel modal="true"><label>{ props.Title }</label><button onClick={ props.Use }>Use</button></panel> }`))
+	view, err := Compile("inventory.kui", []byte(`<template>
+<panel modal="true"><label>{ props.Title }</label><button onClick={ props.Use }>Use</button></panel>
+</template>
+
+<script setup lang="go">
+type InventoryProps struct { Title string; Use func() }
+
+func setup(props InventoryProps) {}
+</script>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,53 +385,38 @@ kartui Inventory(props InventoryProps) { <panel modal="true"><label>{ props.Titl
 	}
 }
 
-func TestSeparateSetup(t *testing.T) {
+func TestGoSetupPreservesQuotedBraces(t *testing.T) {
 	t.Parallel()
 
-	view, err := Compile("menu.ui", []byte(`type Props struct { setup string }
+	view, err := Compile("menu.kui", []byte(`<template><panel><label>{message}</label></panel></template>
+<script setup lang="go">
+type Props struct { setup string }
 // setup { ignored in comment
-setup {
-    message := "}"
-    click := func() { message = "clicked"; invalidate() }
+func setup(props Props) {
+ message := "}"
+ _ = props
 }
-kartui Menu(props Props) { <panel modal="true"><label>{ message }</label><button onClick={ click }>Click</button></panel> }`))
-	if err != nil || !view.Local || !strings.Contains(view.Setup, "invalidate()") || strings.Contains(view.Preamble, "message :=") {
-		t.Fatalf("separate setup: %+v, %v", view, err)
-	}
-
-	for _, source := range []string{
-		"setup {} setup {}\nkartui Menu() { <panel/> }",
-		"setup {}\nkartui Menu() { setup {} <panel/> }",
-		"setup {\nkartui Menu() { <panel/> }",
-		"setup nope\nkartui Menu() { <panel/> }",
-	} {
-		if _, err := Compile("bad.ui", []byte(source)); err == nil {
-			t.Fatalf("accepted invalid setup: %s", source)
-		}
+</script>`))
+	if err != nil || !view.Local || !strings.Contains(view.Setup, `message := "}"`) || !strings.Contains(view.Preamble, "type Props") {
+		t.Fatalf("Go setup: %+v %v", view, err)
 	}
 }
 
-func TestNamedSetup(t *testing.T) {
+func TestRejectLegacyDeclarations(t *testing.T) {
 	t.Parallel()
 
-	view, err := Compile("menu.ui", []byte(`setup Menu(props Props) {
- title := props.Title
-}
-kartui Menu { <panel><label>{ title }</label></panel> }`))
-	if err != nil || view.Name != "Menu" || !view.Local || len(view.Parameters) != 1 || view.Parameters[0].Name != "props" {
-		t.Fatalf("named setup: %+v, %v", view, err)
-	}
-
 	for _, source := range []string{
-		"setup Menu(props Props) {}\nkartui Other { <panel/> }",
-		"setup Menu(props Props) {}\nkartui Menu(props Props) { <panel/> }",
-		"setup Menu(props Props) {}\nkartui Menu { setup {} <panel/> }",
-		"setup Menu {}\nkartui Menu { <panel/> }",
-		"setup Menu() {} setup Menu() {}\nkartui Menu { <panel/> }",
-		"kartui Menu { <panel/> }",
+		"kartui Menu() { <panel/> }",
+		"setup Menu() {}\nkartui Menu { <panel/> }",
+		"setup {}\nkartui Menu() { <panel/> }",
+		"layout Menu { <panel/> }",
 	} {
-		if _, err := Compile("bad.ui", []byte(source)); err == nil {
-			t.Fatalf("accepted invalid named setup: %s", source)
+		if _, err := Compile("menu.kui", []byte(source)); err == nil {
+			t.Fatalf("accepted legacy source: %s", source)
+		}
+
+		if _, err := parseLayout("menu.kui", []byte(source)); err == nil {
+			t.Fatalf("accepted legacy layout: %s", source)
 		}
 	}
 }
@@ -347,20 +425,22 @@ func TestProjectConfinementAndDuplicateComponents(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 
-	contents := []byte(`kartui Menu() { <panel><label>Menu</label></panel> }`)
-	if err := os.WriteFile(filepath.Join(root, "menu.ui"), contents, 0o600); err != nil {
+	contents := []byte(`<template>
+<panel><label>Menu</label></panel>
+</template>`)
+	if err := os.WriteFile(filepath.Join(root, "menu.kui"), contents, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := Load(root, []Source{{Name: "ui.one", Source: "menu.ui"}, {Name: "ui.two", Source: "menu.ui"}}); err == nil {
+	if _, err := Load(root, []Source{{Name: "ui.one", Source: "menu.kui"}, {Name: "ui.two", Source: "menu.kui"}}); err == nil {
 		t.Fatal("duplicate component accepted")
 	}
 
-	if _, err := ReadSource(root, "../outside.ui"); err == nil {
+	if _, err := ReadSource(root, "../outside.kui"); err == nil {
 		t.Fatal("escaped project")
 	}
 
-	if _, err := Compile("large.ui", []byte(strings.Repeat("x", 65537))); err == nil {
+	if _, err := Compile("large.kui", []byte(strings.Repeat("x", 65537))); err == nil {
 		t.Fatal("unbounded source")
 	}
 }
@@ -382,15 +462,21 @@ height = 50
 		t.Fatal(err)
 	}
 
-	component, err := CompileWithTheme("menu.ui", []byte(`kartui Menu() {
+	component, err := CompileWithTheme("menu.kui", []byte(`<template>
 <panel modal="true" class="screen"><label class="title">Menu</label><button class="primary" onClick={ Play }>Play</button></panel>
-}
+</template>
 
-style {
-.screen { background: theme.colors.surface; padding: theme.spacing.panel; }
-.title { color: theme.colors.brand; font-size: theme.typography.title; }
-.primary { background: theme.colors.primary; min-height: theme.controls.height; }
-}`), theme)
+<style>
+.screen
+  background: theme.colors.surface
+  padding: theme.spacing.panel
+.title
+  color: theme.colors.brand
+  font-size: theme.typography.title
+.primary
+  background: theme.colors.primary
+  min-height: theme.controls.height
+</style>`), theme)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,21 +494,29 @@ style {
 func TestCompileResponsiveStyles(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("menu.ui", []byte(`kartui Menu() {
+	component, err := Compile("menu.kui", []byte(`<template>
 <panel modal="true" class="screen"><label class="title">Menu</label><button class="primary" onClick={ Play }>Play</button></panel>
-}
+</template>
 
-style {
-.screen { padding: 24; }
-.title { font-size: 30; }
-.primary { min-height: 48; }
-@media (max-width: 480) {
-    .screen { padding: 8; }
-    label { font-size: 16; }
-    .title { font-size: 24; max-width: 300; }
-    button { font-size: 16; min-height: 40; }
-}
-}`))
+<style>
+.screen
+  padding: 24
+.title
+  font-size: 30
+.primary
+  min-height: 48
+@media (max-width: 480)
+  .screen
+    padding: 8
+  label
+    font-size: 16
+  .title
+    font-size: 24
+    max-width: 300
+  button
+    font-size: 16
+    min-height: 40
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -442,21 +536,19 @@ style {
 func TestCompileControlTransitions(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("menu.ui", []byte(`kartui Menu() {
+	component, err := Compile("menu.kui", []byte(`<template>
 <panel modal="true"><panel class="drawer"><button class="primary" onClick={ Play }>Play</button></panel></panel>
-}
+</template>
 
-style {
-.drawer {
-    transition-duration: 180;
-    transition-enter: slide-from-left;
-    transition-exit: slide-to-right;
-}
-.primary {
-    transition-duration: 140;
-    background: #203040;
-}
-}`))
+<style>
+.drawer
+  transition-duration: 180
+  transition-enter: slide-from-left
+  transition-exit: slide-to-right
+.primary
+  transition-duration: 140
+  background: #203040
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -472,13 +564,18 @@ style {
 func TestCompileTextAlignment(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("menu.ui", []byte(`kartui Menu() {
+	component, err := Compile("menu.kui", []byte(`<template>
 <panel modal="true"><label class="status">Ready</label><button class="action" onClick={ Play }>Play</button></panel>
-}
-style {
-.status { text-align: right; font-family: mono; }
-.action { text-align: left; font-family: display; }
-}`))
+</template>
+
+<style>
+.status
+  text-align: right
+  font-family: mono
+.action
+  text-align: left
+  font-family: display
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -494,14 +591,22 @@ style {
 func TestCompileDistinctFocusAndTransitionTiming(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("menu.ui", []byte(`kartui Menu() {
+	component, err := Compile("menu.kui", []byte(`<template>
 <panel modal="true"><button class="action" onClick={ Play }>Play</button></panel>
-}
-style {
-.action { transition-duration: 180; transition-delay: 40; transition-easing: ease-in-out; }
-.action:hover { background: #204060; color: #ffffff; }
-.action:focus { background: #70d6ff; color: #06101b; }
-}`))
+</template>
+
+<style>
+.action
+  transition-duration: 180
+  transition-delay: 40
+  transition-easing: ease-in-out
+.action:hover
+  background: #204060
+  color: #ffffff
+.action:focus
+  background: #70d6ff
+  color: #06101b
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -519,10 +624,16 @@ style {
 func TestCompileOverlayPosition(t *testing.T) {
 	t.Parallel()
 
-	component, err := Compile("badge.ui", []byte(`kartui Badge() {
+	component, err := Compile("badge.kui", []byte(`<template>
 <panel><panel class="badge"><label>Online</label></panel><label>Content</label></panel>
-}
-style { .badge { position: absolute; top: 12; right: 16; } }`))
+</template>
+
+<style>
+.badge
+  position: absolute
+  top: 12
+  right: 16
+</style>`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -540,27 +651,162 @@ func TestCompileWarnsAndIgnoresInvalidStyles(t *testing.T) {
 	t.Parallel()
 
 	for _, source := range []string{
-		`kartui Bad() { <panel class="missing"><label>x</label></panel> }`,
-		`kartui Bad() { <panel><label>x</label></panel> } style { .unused { color: #ffffff; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { padding: 4; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { color: theme.colors.missing; } }`,
-		`kartui Bad() { <panel class="x"><label>x</label></panel> } style { .x { flex-direction: diagonal; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { align-items: center; } }`,
-		`kartui Bad() { <panel class="x"><label>x</label></panel> } style { .x { justify-content: around; } }`,
-		`kartui Bad() { <panel class="x"><label>x</label></panel> } style { .x { overflow: clip; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { text-align: justify; } }`,
-		`kartui Bad() { <panel class="x"><label>x</label></panel> } style { .x { text-align: left; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { font-family: fantasy; } }`,
-		`kartui Bad() { <panel modal="true"><button class="x" onClick={ Play }>x</button></panel> } style { .x { transition-easing: bounce; } }`,
-		`kartui Bad() { <panel><panel class="x"><label>x</label></panel></panel> } style { .x { position: fixed; } }`,
-		`kartui Bad() { <panel><panel class="x"><label>x</label></panel></panel> } style { .x { top: 10; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { flex-grow: 17; } }`,
-		`kartui Bad() { <panel><label class="x">x</label></panel> } style { .x { margin: 257; } }`,
-		`kartui Bad() { <panel><label>x</label></panel> } style { @media (max-width: 200) { label { font-size: 12; } } }`,
-		`kartui Bad() { <panel><label>x</label></panel> } style { @media (max-width: 480) { label { font-size: 12; } } @media (max-width: 600) { label { font-size: 14; } } }`,
-		`kartui Bad() { <panel><label>x</label></panel> } style { @media (max-width: 480) { @media (max-width: 400) { label { font-size: 12; } } } }`,
+		`<template>
+<panel class="missing"><label>x</label></panel>
+</template>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<style>
+.unused
+  color: #ffffff
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  padding: 4
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  color: theme.colors.missing
+</style>`,
+		`<template>
+<panel class="x"><label>x</label></panel>
+</template>
+
+<style>
+.x
+  flex-direction: diagonal
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  align-items: center
+</style>`,
+		`<template>
+<panel class="x"><label>x</label></panel>
+</template>
+
+<style>
+.x
+  justify-content: around
+</style>`,
+		`<template>
+<panel class="x"><label>x</label></panel>
+</template>
+
+<style>
+.x
+  overflow: clip
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  text-align: justify
+</style>`,
+		`<template>
+<panel class="x"><label>x</label></panel>
+</template>
+
+<style>
+.x
+  text-align: left
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  font-family: fantasy
+</style>`,
+		`<template>
+<panel modal="true"><button class="x" onClick={ Play }>x</button></panel>
+</template>
+
+<style>
+.x
+  transition-easing: bounce
+</style>`,
+		`<template>
+<panel><panel class="x"><label>x</label></panel></panel>
+</template>
+
+<style>
+.x
+  position: fixed
+</style>`,
+		`<template>
+<panel><panel class="x"><label>x</label></panel></panel>
+</template>
+
+<style>
+.x
+  top: 10
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  flex-grow: 17
+</style>`,
+		`<template>
+<panel><label class="x">x</label></panel>
+</template>
+
+<style>
+.x
+  margin: 257
+</style>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<style>
+@media (max-width: 200)
+  label
+    font-size: 12
+</style>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<style>
+@media (max-width: 480)
+  label
+    font-size: 12
+@media (max-width: 600)
+  label
+    font-size: 14
+</style>`,
+		`<template>
+<panel><label>x</label></panel>
+</template>
+
+<style>
+@media (max-width: 480)
+  @media (max-width: 400)
+    label
+      font-size: 12
+</style>`,
 	} {
-		component, err := Compile("bad.ui", []byte(strings.Replace(source, " } style {", " }\nstyle {", 1)))
+		component, err := Compile("bad.kui", []byte(source))
 		if err != nil || len(component.StyleWarnings()) == 0 {
 			t.Fatalf("style should warn without failing: %s: %v warnings=%v", source, err, component.StyleWarnings())
 		}
@@ -587,11 +833,14 @@ slice = [10, 12, 14, 16]
 		t.Fatal(err)
 	}
 
-	component, err := CompileWithTheme("menu.ui", []byte(`kartui Menu() {
+	component, err := CompileWithTheme("menu.kui", []byte(`<template>
 <panel class="screen"><label>Menu</label></panel>
-}
+</template>
 
-style { .screen { background-image: theme.images.panel; } }`), theme)
+<style>
+.screen
+  background-image: theme.images.panel
+</style>`), theme)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -632,10 +881,16 @@ slice = [0, 0, 0, 0]
 		t.Fatal(err)
 	}
 
-	component, err := CompileWithTheme("menu.ui", []byte(`kartui Menu() {
+	component, err := CompileWithTheme("menu.kui", []byte(`<template>
 <panel><image class="emblem"/></panel>
-}
-style { .emblem { image: theme.images.emblem; min-width: 48; min-height: 48; } }`), theme)
+</template>
+
+<style>
+.emblem
+  image: theme.images.emblem
+  min-width: 48
+  min-height: 48
+</style>`), theme)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -659,13 +914,28 @@ slice = [0, 0, 0, 0]
 		t.Fatal(err)
 	}
 
-	component, err := CompileWithTheme("menu.ui", []byte(`kartui Menu(Click func()) {
+	component, err := CompileWithTheme("menu.kui", []byte(`<template>
 <panel modal="true"><image class="art"/><button class="play" onClick={ Click }>Play</button></panel>
-}
-style {
- .art { image: theme.images.emblem; image-fit: cover; tint: #70d6ffff; min-width: 96; min-height: 48; }
- .play { icon: theme.images.emblem; icon-size: 18; icon-gap: 7; icon-position: start; tint: #ffffffff; }
-}`), theme)
+</template>
+
+<script setup lang="go">
+func setup(Click func()) {}
+</script>
+
+<style>
+.art
+  image: theme.images.emblem
+  image-fit: cover
+  tint: #70d6ffff
+  min-width: 96
+  min-height: 48
+.play
+  icon: theme.images.emblem
+  icon-size: 18
+  icon-gap: 7
+  icon-position: start
+  tint: #ffffffff
+</style>`), theme)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -683,16 +953,20 @@ style {
 func TestCompileSemanticBackThroughLayout(t *testing.T) {
 	t.Parallel()
 
-	layout, err := parseLayout("window.ui", []byte(`layout WindowLayout {
+	layout, err := parseLayout("window-layout.kui", []byte(`<template>
 <panel modal="true"><slot/></panel>
-}`))
+</template>`))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	component, err := compileWithLayouts("inventory.ui", []byte(`kartui Inventory(Back func()) {
+	component, err := compileWithLayouts("inventory.kui", []byte(`<template>
 <WindowLayout onBack={ Back }><Child props={ Back }/></WindowLayout>
-}`), DefaultTheme(), map[string]Layout{"WindowLayout": layout})
+</template>
+
+<script setup lang="go">
+func setup(Back func()) {}
+</script>`), DefaultTheme(), map[string]Layout{"WindowLayout": layout})
 	if err != nil {
 		t.Fatal(err)
 	}

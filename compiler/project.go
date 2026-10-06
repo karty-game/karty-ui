@@ -63,7 +63,11 @@ func LoadProjectWithTheme(
 	}
 
 	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Source, ".ui") && !strings.HasSuffix(entry.Source, ".kui") {
+		if strings.HasSuffix(entry.Source, ".ui") {
+			return nil, fmt.Errorf("%s: use a .kui single-file component: %w", entry.Source, ui.ErrTemplate)
+		}
+
+		if !strings.HasSuffix(entry.Source, ".kui") {
 			continue
 		}
 

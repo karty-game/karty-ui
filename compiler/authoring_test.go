@@ -126,8 +126,20 @@ func TestStyleDiagnosticsUseOriginalLocations(t *testing.T) {
 		line, column int
 	}{
 		{"<!-- Header -->\n<template><panel class=\"screen\"><label>Ready</label></panel></template>\n<style>\n.screen\n  width: 9000px\n</style>", 5, 3},
-		{"<template><panel class=\"screen\"><label>Ready</label></panel></template>\n<style>\n.screen { gap: 8; width: 9000px; }\n</style>", 3, 19},
-		{"kartui Menu() { <panel><label>Ready</label></panel> }\nstyle { panel { width: 9000px; } }", 2, 17},
+		{`<template><panel class="screen"><label>Ready</label></panel></template>
+<style>
+.screen
+  gap: 8
+  width: 9000px
+</style>`, 5, 3},
+		{`<template>
+<panel><label>Ready</label></panel>
+</template>
+
+<style>
+panel
+  width: 9000px
+</style>`, 7, 3},
 		{"<template><panel><label>Ready</label></panel></template>\n<style>\n$space: $missing\npanel\n  gap: 8\n</style>", 3, 1},
 	} {
 		component, err := Compile("ui/menu.kui", []byte(entry.text))
@@ -195,7 +207,14 @@ func TestCompilerErrorsPointToAuthoredSFC(t *testing.T) {
 		line, column int
 	}{
 		{"<!-- Header -->\n<template><panel><label>Ready</label></panel></template>\n<style>\npanel\n  width: 80%\n gap: 8\n</style>", 6, 2},
-		{"<!-- Header -->\n<script lang='go' setup>\nfunc setup() {\n name :=\n}\n</script>\n<template><panel><label>Ready</label></panel></template>", 5, 1},
+		{`<!-- Header -->
+<template><panel><label>Ready</label></panel></template>
+
+<script lang='go' setup>
+func setup() {
+ name :=
+}
+</script>`, 7, 1},
 		{"<!-- Header -->\n<template>\n<panel>\n  <label class=\"one two\">Ready</label>\n</panel>\n</template>", 4, 3},
 	} {
 		_, err := Compile("ui/broken.kui", []byte(entry.text))
@@ -211,7 +230,9 @@ func TestCompilerErrorsPointToAuthoredSFC(t *testing.T) {
 func TestCompilerMetadataCannotBeAuthored(t *testing.T) {
 	t.Parallel()
 
-	for _, source := range []string{`<template><panel _kartyOrigin="0"><label>Text</label></panel></template>`, `kartui Menu() { <panel><label _kartyOrigin="0">Text</label></panel> }`} {
+	for _, source := range []string{`<template><panel _kartyOrigin="0"><label>Text</label></panel></template>`, `<template>
+<panel><label _kartyOrigin="0">Text</label></panel>
+</template>`} {
 		if _, err := Compile("bad.kui", []byte(source)); !errors.Is(err, ui.ErrTemplate) {
 			t.Fatal("accepted forged metadata", err)
 		}
