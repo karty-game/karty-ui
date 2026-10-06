@@ -8,3 +8,5 @@
 **/vendor/**
 # Regenerate snapshots with their owning generator.
 **/*.generated.*
+# Compiled world fixtures require canonical wire bytes, rather than editor layout.
+**/*.world.json

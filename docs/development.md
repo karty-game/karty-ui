@@ -27,7 +27,8 @@ applies all formatters through hk without staging; `mise run check-fmt` checks
 formatting without writing files. `mise run lint` runs all format and lint
 checks. `mise run check` also runs tests, build and editor tests.
 
-Generated Go and `*.generated.*` snapshots, derived output and local contributor
+Generated Go, `*.generated.*` snapshots and canonical `*.world.json` fixtures,
+derived output and local contributor
 directories are excluded from formatting; update their owning generators instead.
 
 - `compiler`: markup, composition, styles, themes and layout compilation.
