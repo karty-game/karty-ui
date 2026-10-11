@@ -880,8 +880,8 @@ func (component *Component) textContent(value string, expressions map[string]str
 	return nil
 }
 
-// DecodeSource preserves legacy JSON assets while accepting the new authoring
-// format. Only the canonical bounded asset is embedded; markup never ships loose.
+// DecodeSource compiles .kui authoring or validates a KUI1 binary asset.
+// Only the bounded binary asset is embedded; markup never ships loose.
 func DecodeSource(source string, data []byte) (ui.Template, error) {
 	return DecodeSourceWithTheme(source, data, DefaultTheme())
 }

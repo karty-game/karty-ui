@@ -169,3 +169,13 @@ style warnings; `StyleWarnings()` returns formatted strings. `SourceError` expos
 compiler error locations and preserves its cause for `errors.Is`/`errors.As`.
 Go type errors from generated client compilation may still refer to generated Go;
 this compiler does not replace Go type checking or provide editor diagnostics.
+
+## Runtime serialization
+
+SDK 0.0.11 packages UI templates as KUI1 binary assets, version 1, with a
+16-byte little-endian header, typed fields and bounded UTF-8 strings. The
+64-element and 64-KiB bounds and semantic presentation schema versions stay
+unchanged. Runtime schema codecs reject JSON, truncated records, noncanonical
+flags and trailing bytes; old packaged templates require rebuilding. Static
+field operations are generated from the owning handwritten generator with
+`go generate ./schema`; no JSON decoder or reflection is linked by the schema.

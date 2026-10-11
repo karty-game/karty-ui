@@ -9,8 +9,8 @@ const (
 // Length stores logical pixels or hundredths of a percent; zero means auto.
 // A style presence bit distinguishes an explicit auto override from omission.
 type Length struct {
-	Unit  uint8  `json:"unit,omitempty"`
-	Value uint16 `json:"value,omitempty"`
+	Unit  uint8
+	Value uint16
 }
 
 const (

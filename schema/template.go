@@ -3,11 +3,7 @@
 package ui
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"unicode/utf8"
 )
 
@@ -165,99 +161,99 @@ var ErrTemplate = errors.New("invalid UI template")
 // A modal panel captures game input. Schema 9 also permits actionable nonmodal
 // HUD controls; older nonmodal templates retain their noninteractive contract.
 type Template struct {
-	Version            uint32    `json:"version"`
-	Modal              bool      `json:"modal"`
-	Back               bool      `json:"back,omitempty"`
-	Panel              Style     `json:"panel,omitzero"`
-	ResponsiveMaxWidth uint16    `json:"responsiveMaxWidth,omitempty"`
-	ResponsivePanel    Style     `json:"responsivePanel,omitzero"`
-	Elements           []Element `json:"elements"`
+	Version            uint32
+	Modal              bool
+	Back               bool
+	Panel              Style
+	ResponsiveMaxWidth uint16
+	ResponsivePanel    Style
+	Elements           []Element
 }
 
 type Element struct {
-	ID          uint32 `json:"id"`
-	Parent      uint32 `json:"parent,omitempty"`
-	Name        string `json:"name"`
-	Kind        string `json:"kind"`
-	Text        string `json:"text"`
-	Action      uint32 `json:"action,omitempty"`
-	Value       string `json:"value,omitempty"`
-	Min         int32  `json:"min,omitempty"`
-	Max         int32  `json:"max,omitempty"`
-	Placeholder string `json:"placeholder,omitempty"`
-	Tooltip     string `json:"tooltip,omitempty"`
-	Style       Style  `json:"style,omitzero"`
+	ID          uint32
+	Parent      uint32
+	Name        string
+	Kind        string
+	Text        string
+	Action      uint32
+	Value       string
+	Min         int32
+	Max         int32
+	Placeholder string
+	Tooltip     string
+	Style       Style
 	// ResponsiveStyle is the fully resolved style selected at or below the
 	// template's ResponsiveMaxWidth. A zero Set inherits Style unchanged.
-	ResponsiveStyle Style `json:"responsiveStyle,omitzero"`
+	ResponsiveStyle Style
 }
 
 // Style is a compact, compiler-resolved presentation value. Set distinguishes
 // an authored zero/transparent value from an omitted property.
 type Style struct {
-	Set                     uint32 `json:"set,omitempty"`
-	Set2                    uint32 `json:"set2,omitempty"`
-	Background              uint32 `json:"background,omitempty"`
-	BackgroundHover         uint32 `json:"backgroundHover,omitempty"`
-	BackgroundPressed       uint32 `json:"backgroundPressed,omitempty"`
-	Color                   uint32 `json:"color,omitempty"`
-	Padding                 uint16 `json:"padding,omitempty"`
-	Gap                     uint16 `json:"gap,omitempty"`
-	FontSize                uint16 `json:"fontSize,omitempty"`
-	MinHeight               uint16 `json:"minHeight,omitempty"`
-	BackgroundImage         Image  `json:"backgroundImage,omitzero"`
-	BackgroundImageHover    Image  `json:"backgroundImageHover,omitzero"`
-	BackgroundImagePressed  Image  `json:"backgroundImagePressed,omitzero"`
-	BackgroundDisabled      uint32 `json:"backgroundDisabled,omitempty"`
-	BackgroundImageDisabled Image  `json:"backgroundImageDisabled,omitzero"`
-	ColorHover              uint32 `json:"colorHover,omitempty"`
-	ColorPressed            uint32 `json:"colorPressed,omitempty"`
-	ColorDisabled           uint32 `json:"colorDisabled,omitempty"`
-	FlexDirection           uint8  `json:"flexDirection,omitempty"`
-	AlignItems              uint8  `json:"alignItems,omitempty"`
-	MinWidth                uint16 `json:"minWidth,omitempty"`
-	MaxWidth                uint16 `json:"maxWidth,omitempty"`
-	MaxHeight               uint16 `json:"maxHeight,omitempty"`
-	JustifyContent          uint8  `json:"justifyContent,omitempty"`
-	FlexGrow                uint8  `json:"flexGrow,omitempty"`
-	Margin                  uint16 `json:"margin,omitempty"`
-	Overflow                uint8  `json:"overflow,omitempty"`
-	TransitionDuration      uint16 `json:"transitionDuration,omitempty"`
-	TransitionEnter         uint8  `json:"transitionEnter,omitempty"`
-	TransitionExit          uint8  `json:"transitionExit,omitempty"`
-	TextAlign               uint8  `json:"textAlign,omitempty"`
-	FontFamily              uint8  `json:"fontFamily,omitempty"`
-	ContentImage            Image  `json:"contentImage,omitzero"`
-	BackgroundFocus         uint32 `json:"backgroundFocus,omitempty"`
-	BackgroundImageFocus    Image  `json:"backgroundImageFocus,omitzero"`
-	ColorFocus              uint32 `json:"colorFocus,omitempty"`
-	TransitionDelay         uint16 `json:"transitionDelay,omitempty"`
-	TransitionEasing        uint8  `json:"transitionEasing,omitempty"`
-	Position                uint8  `json:"position,omitempty"`
-	Left                    uint16 `json:"left,omitempty"`
-	Right                   uint16 `json:"right,omitempty"`
-	Top                     uint16 `json:"top,omitempty"`
-	Bottom                  uint16 `json:"bottom,omitempty"`
-	ImageFit                uint8  `json:"imageFit,omitempty"`
-	Tint                    uint32 `json:"tint,omitempty"`
-	Icon                    Image  `json:"icon,omitzero"`
-	IconSize                uint16 `json:"iconSize,omitempty"`
-	IconPosition            uint8  `json:"iconPosition,omitempty"`
-	IconGap                 uint16 `json:"iconGap,omitempty"`
-	Width                   Length `json:"width,omitzero"`
-	Height                  Length `json:"height,omitzero"`
+	Set                     uint32
+	Set2                    uint32
+	Background              uint32
+	BackgroundHover         uint32
+	BackgroundPressed       uint32
+	Color                   uint32
+	Padding                 uint16
+	Gap                     uint16
+	FontSize                uint16
+	MinHeight               uint16
+	BackgroundImage         Image
+	BackgroundImageHover    Image
+	BackgroundImagePressed  Image
+	BackgroundDisabled      uint32
+	BackgroundImageDisabled Image
+	ColorHover              uint32
+	ColorPressed            uint32
+	ColorDisabled           uint32
+	FlexDirection           uint8
+	AlignItems              uint8
+	MinWidth                uint16
+	MaxWidth                uint16
+	MaxHeight               uint16
+	JustifyContent          uint8
+	FlexGrow                uint8
+	Margin                  uint16
+	Overflow                uint8
+	TransitionDuration      uint16
+	TransitionEnter         uint8
+	TransitionExit          uint8
+	TextAlign               uint8
+	FontFamily              uint8
+	ContentImage            Image
+	BackgroundFocus         uint32
+	BackgroundImageFocus    Image
+	ColorFocus              uint32
+	TransitionDelay         uint16
+	TransitionEasing        uint8
+	Position                uint8
+	Left                    uint16
+	Right                   uint16
+	Top                     uint16
+	Bottom                  uint16
+	ImageFit                uint8
+	Tint                    uint32
+	Icon                    Image
+	IconSize                uint16
+	IconPosition            uint8
+	IconGap                 uint16
+	Width                   Length
+	Height                  Length
 }
 
 // Image is a compiler-resolved nine-slice reference. Game images use a logical
 // name; level images use the stable numeric ID from their owning .kld.
 type Image struct {
-	Scope   uint8  `json:"scope"`
-	Name    string `json:"name,omitempty"`
-	AssetID uint32 `json:"assetId,omitempty"`
-	Top     uint16 `json:"top,omitempty"`
-	Right   uint16 `json:"right,omitempty"`
-	Bottom  uint16 `json:"bottom,omitempty"`
-	Left    uint16 `json:"left,omitempty"`
+	Scope   uint8
+	Name    string
+	AssetID uint32
+	Top     uint16
+	Right   uint16
+	Bottom  uint16
+	Left    uint16
 }
 
 func Decode(data []byte) (Template, error) {
@@ -270,21 +266,9 @@ func DecodeComposition(data []byte) (Template, error) {
 }
 
 func decode(data []byte, composition bool) (Template, error) {
-	if len(data) > MaxAssetBytes || !utf8.Valid(data) {
-		return Template{}, ErrTemplate
-	}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-
-	var result Template
-	if err := decoder.Decode(&result); err != nil {
-		return Template{}, fmt.Errorf("decode UI: %w", err)
-	}
-
-	var extra any
-	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return Template{}, ErrTemplate
+	result, err := decodeBinary(data)
+	if err != nil {
+		return Template{}, err
 	}
 
 	if err := result.validate(composition); err != nil {
@@ -703,7 +687,7 @@ func validName(name string) bool {
 	return true
 }
 
-// Encode canonicalizes legacy schema-1 authoring JSON for embedding.
+// Encode emits a bounded KUI1 binary asset with semantic schema version 1.
 func Encode(template Template) ([]byte, error) {
 	return encode(template, false)
 }
@@ -715,14 +699,5 @@ func encode(template Template, composition bool) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := json.Marshal(template)
-	if err != nil {
-		return nil, fmt.Errorf("encode UI: %w", err)
-	}
-
-	if len(data) > MaxAssetBytes {
-		return nil, ErrTemplate
-	}
-
-	return data, nil
+	return encodeBinary(template)
 }
