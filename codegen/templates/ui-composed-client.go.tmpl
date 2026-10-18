@@ -18,6 +18,13 @@ func _kartyChild{{.Name}}(_kartyParent *_kartyEngine.UI, _kartySlot uint32, _kar
  if _kartyView == nil { return }
  if _kartyFresh { _kartySetup{{.Name}}(_kartyView,_kartyValue) } else { _kartyView.SetProps(_kartyValue) }
 }
+{{if .SourceFactory}}
+func _kartyChildSource{{.Name}}(_kartyParent *_kartyEngine.UI, _kartySlot uint32, _kartyKey any, _kartySource _kartyEngine.UISource, _kartyValue {{$props.Type}}) {
+ _kartyView, _kartyFresh := _kartyParent.ChildSource(_kartySlot,_kartyKey,_kartySource)
+ if _kartyView == nil { return }
+ if _kartyFresh { _kartySetup{{.Name}}(_kartyView,_kartyValue) } else { _kartyView.SetProps(_kartyValue) }
+}
+{{end}}
 {{end}}
 func _kartySetup{{.Name}}(_kartyView *_kartyEngine.UI, {{range .Parameters}}{{.Name}} {{.Type}},{{end}}) {
  invalidate := func() { _kartyView.Invalidate() }; _ = invalidate
@@ -27,7 +34,7 @@ func _kartySetup{{.Name}}(_kartyView *_kartyEngine.UI, {{range .Parameters}}{{.N
  {{if .Child}}
  {{if .Visible}}if {{.Visible}} { {{end}}
  {{if .Loop}}{{.Loop}} { {{end}}
- _kartyChild{{.Child}}(_kartyTarget,{{.ID}},{{.Key}},{{.Props}})
+ {{if .Source}}_kartyChildSource{{.Child}}(_kartyTarget,{{.ID}},{{.Key}},{{.Source}},{{.Props}}){{else}}_kartyChild{{.Child}}(_kartyTarget,{{.ID}},{{.Key}},{{.Props}}){{end}}
  {{if .Loop}} } {{end}}
  {{if .Visible}} } {{end}}
  {{else}}

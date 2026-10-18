@@ -29,38 +29,38 @@ type Parameter struct{ Name, Type string }
 type Binding struct {
 	ID                                                  uint32
 	Text, DefaultText, Enabled, Visible, Rows, Click    string
-	Child, Props, Key, Loop                             string
+	Child, Props, Key, Loop, Source                     string
 	Value, ValueMethod, Change, ChangeType, ChangeField string
 }
 type Component struct {
-	selectorLocations                      map[string]SourceLocation
-	Name, Source, Asset                    string
-	Local                                  bool
-	Composition, ChildFactory, Conditional bool
-	loops                                  []string
-	activeLoop                             string
-	conditions                             []string
-	activeCondition                        string
-	conditionDepth                         int
-	Setup, Preamble                        string
-	Back                                   string
-	Parameters                             []Parameter
-	Bindings                               []Binding
-	Template                               ui.Template
-	panelClass                             string
-	elementClasses                         []string
-	parent                                 uint32
-	parents                                []uint32
-	loopDepth                              int
-	styleWarnings                          []Diagnostic
-	panelScope                             string
-	elementScopes                          []string
-	elementLocations                       []SourceLocation
-	origins                                []markupOrigin
-	panelLocation                          SourceLocation
-	currentStyleLocation                   SourceLocation
-	currentStyleIndex                      int
-	styleLocations                         map[int]map[string]SourceLocation
+	selectorLocations                                     map[string]SourceLocation
+	Name, Source, Asset                                   string
+	Local                                                 bool
+	Composition, ChildFactory, Conditional, SourceFactory bool
+	loops                                                 []string
+	activeLoop                                            string
+	conditions                                            []string
+	activeCondition                                       string
+	conditionDepth                                        int
+	Setup, Preamble                                       string
+	Back                                                  string
+	Parameters                                            []Parameter
+	Bindings                                              []Binding
+	Template                                              ui.Template
+	panelClass                                            string
+	elementClasses                                        []string
+	parent                                                uint32
+	parents                                               []uint32
+	loopDepth                                             int
+	styleWarnings                                         []Diagnostic
+	panelScope                                            string
+	elementScopes                                         []string
+	elementLocations                                      []SourceLocation
+	origins                                               []markupOrigin
+	panelLocation                                         SourceLocation
+	currentStyleLocation                                  SourceLocation
+	currentStyleIndex                                     int
+	styleLocations                                        map[int]map[string]SourceLocation
 }
 
 // StaticTemplate returns a strictly validated presentation-only template.

@@ -80,3 +80,26 @@ func setup(props Props) {}
 		t.Fatalf("conditions = %#v", component.Bindings)
 	}
 }
+
+func TestMountedChildSource(t *testing.T) {
+	t.Parallel()
+
+	source := `<template><panel><Picture source={props.Source} props={props.Name}/></panel></template>
+<script setup lang="go">func setup(props Props) {}</script>`
+
+	parent, err := Compile("parent.kui", []byte(source))
+	if err != nil || parent.Bindings[0].Source != "props.Source" {
+		t.Fatalf("source: %+v %v", parent, err)
+	}
+
+	components := []Component{parent, {Name: "Picture", Parameters: []Parameter{{Name: "name", Type: "string"}}}}
+	if err := resolveChildren(components); err != nil || !components[1].SourceFactory {
+		t.Fatal("source adapter missing", err)
+	}
+
+	for _, bad := range []string{`source="pack"`, `source={a} source={b}`, `unknown={a}`} {
+		if _, err := Compile("bad.kui", []byte(strings.Replace(source, "source={props.Source}", bad, 1))); err == nil {
+			t.Fatal("accepted", bad)
+		}
+	}
+}

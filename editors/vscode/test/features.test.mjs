@@ -46,6 +46,16 @@ test("attributes depend on the widget and exclude existing attributes on either 
   assert.ok(!apply(markup('<panel mo|dal="true"/>'), "modal").includes('modal="${1'));
 });
 
+test("child source completion and hover match the compiler attributes", () => {
+  assert.deepEqual(labels(markup("<panel><Picture |/></panel>")), ["props", "key", "source"]);
+  assert.ok(apply(markup("<panel><Picture sou|/></panel>"), "source").includes("source={${1:props.Source}}"));
+  assert.ok(!labels(markup("<panel><Picture | source={props.Source}/></panel>")).includes("source"));
+  assert.deepEqual(labels(markup("<panel><Picture source={props.|}/></panel>")), []);
+  assert.ok(!labels(markup("<panel><image |/></panel>")).includes("source"));
+  const source = input(markup("<panel><Picture sou|rce={props.Source}/></panel>"));
+  assert.match(hoverAt(source.model, source.offset).detail, /engine\.UISource.*SDK 0\.0\.13/);
+});
+
 test("Go bodies, callback expressions, comments and literal labels have no markup suggestions", () => {
   const cases = [
     '<script lang="go" setup>func setup() { text := "<input |" }</script>\n<template><panel/></template>',

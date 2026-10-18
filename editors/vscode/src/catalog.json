@@ -548,6 +548,11 @@
       "detail": "Range child: stable uint32 or string key (up to 128 UTF-8 bytes). Preserves setup state when children reorder.",
       "insert": "key={${1:item.ID}}",
       "values": []
+    },
+    "source": {
+      "detail": "Child component: engine.UISource expression selecting a global or ready level template with matching bindings. Requires SDK 0.0.13 candidate support.",
+      "insert": "source={${1:props.Source}}",
+      "values": []
     }
   }
 }

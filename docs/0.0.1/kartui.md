@@ -179,3 +179,13 @@ unchanged. Runtime schema codecs reject JSON, truncated records, noncanonical
 flags and trailing bytes; old packaged templates require rebuilding. Static
 field operations are generated from the owning handwritten generator with
 `go generate ./schema`; no JSON decoder or reflection is linked by the schema.
+
+## Mounted child templates (SDK 0.0.13 candidate)
+
+`<Picture source={props.Source} props={props.Picture}/>` selects an explicit
+`engine.UISource{Handle: pack, Name: "art.picture"}`. Omit `source` for the
+component's global template. The selected template must preserve the nominal
+component's element IDs, slots and action bindings. Request its ordinary level
+pack in advance; mount only after readiness. A changed handle/name replaces
+that keyed child; releasing its pack removes that descendant. Desktop sprites
+can share the same pack through `engine.LevelTexture(pack, id)`.

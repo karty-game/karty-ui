@@ -164,6 +164,12 @@ func (component *Component) addChild(node xml.StartElement, expressions map[stri
 			}
 
 			binding.Props = value
+		case "source":
+			if binding.Source != "" {
+				return ui.ErrTemplate
+			}
+
+			binding.Source = value
 		case "key":
 			if binding.Key != "" {
 				return ui.ErrTemplate
@@ -171,7 +177,7 @@ func (component *Component) addChild(node xml.StartElement, expressions map[stri
 
 			binding.Key = value
 		default:
-			return fmt.Errorf("child %s supports only props/key: %w", binding.Child, ui.ErrTemplate)
+			return fmt.Errorf("child %s supports only props/key/source: %w", binding.Child, ui.ErrTemplate)
 		}
 	}
 
@@ -240,6 +246,7 @@ func resolveChildren(components []Component) error {
 			}
 
 			target.Local, target.Composition, target.ChildFactory = true, true, true
+			target.SourceFactory = target.SourceFactory || binding.Source != ""
 
 			if err := visit(child); err != nil {
 				return err

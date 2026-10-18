@@ -346,7 +346,7 @@ function contextAt(model, offset) {
 
 function attributesFor(tag) {
   let names = catalog.tags[tag.name]?.attributes;
-  if (!names && /^[A-Z]/.test(tag.name)) names = ["props", "key", "onBack"];
+  if (!names && /^[A-Z]/.test(tag.name)) names = ["props", "key", "source"];
   if (tag.name === "panel") names = tag.parents.length ? ["class", "tooltip"] : ["class", "modal", "onBack"];
   return names || [];
 }

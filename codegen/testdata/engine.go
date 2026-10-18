@@ -4,6 +4,10 @@ package engine
 
 import "strconv"
 
+type UISource struct {
+	Handle uint32
+	Name   string
+}
 type UIElement uint32
 type UIAction struct {
 	Element  UIElement
@@ -20,6 +24,7 @@ type UI struct {
 	Enabled  map[uint32]bool
 	Visible  map[uint32]bool
 	Lists    map[uint32][]UIRow
+	Source   UISource
 	Children map[uint32]*UI
 	project  func(*UI)
 	action   func(UIAction)
@@ -79,4 +84,10 @@ func (view *UI) Value(id uint32, value int32, enabled bool) {
 }
 func (view *UI) Selected(id uint32, value uint32, enabled bool) {
 	view.Set(id, strconv.FormatUint(uint64(value), 10), enabled)
+}
+
+func (view *UI) ChildSource(slot uint32, key any, source UISource) (*UI, bool) {
+	child, fresh := view.Child(slot, key, source.Name)
+	child.Source = source
+	return child, fresh
 }

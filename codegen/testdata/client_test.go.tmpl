@@ -12,7 +12,7 @@ func TestGeneratedBindings(t *testing.T) {
 	props := &ParentProps{Title: "first", Click: func() { calls++ }}
 	root := Parent(props)
 	child := root.Children[1]
-	if child == nil || child.Text[1] != "first" {
+	if child == nil || child.Text[1] != "first" || child.Source.Handle != 7 || child.Source.Name != "packed.child" {
 		t.Fatal("initial child projection missing")
 	}
 	root.Dispatch(engine.UIAction{Element: 2})

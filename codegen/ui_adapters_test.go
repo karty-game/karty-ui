@@ -60,10 +60,11 @@ func setup(props *WidgetProps) {}
 </script>`,
 
 		"parent.kui": `<template>
-<panel modal="true" onBack={callback}><Child props={view.Title}/><button onClick={callback}>Click</button></panel>
+<panel modal="true" onBack={callback}><Child source={engine.UISource{Handle:7,Name:"packed.child"}} props={view.Title}/><button onClick={callback}>Click</button></panel>
 </template>
 
 <script setup lang="go">
+import engine "example.com/adaptertest/.karty/engine"
 type ParentProps struct { Title string; Click func() }
 
 func setup(view *ParentProps) {
