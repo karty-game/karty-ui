@@ -1,7 +1,9 @@
 # KartUI editor features v1
 
-Status: local VS Code extension 0.1.21. This adds editor services without changing
-KartUI source syntax, compiler APIs, serialized schemas, SDK pins or host behavior.
+Status: local VS Code extension 0.1.22. The editor services do not change
+serialized schemas, SDK pins or host behavior. Child attribute completion and
+hover include the [mounted source language addition](mounted-child-sources-v1.md),
+which requires SDK 0.0.13 candidate APIs when used.
 
 The first increment for the semantic editor review item supplies context-aware
 completion, hover help and local style navigation. The extension registers
