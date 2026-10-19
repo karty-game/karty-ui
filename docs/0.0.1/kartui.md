@@ -70,7 +70,7 @@ Use [indented styles](indented-styles.md) for the default compact style syntax,
 | Element         | Attributes                                                 | Notes                                      |
 | --------------- | ---------------------------------------------------------- | ------------------------------------------ |
 | `panel`         | `class`; root: `modal="true                                | false"`, modal `onBack={ func() }`         | Root must be a panel; nested panels create layout parents. |
-| `label`         | `class`                                                    | Static text is its body.                   |
+| `label`         | `class`, `reveal={ uint32 }`                               | Static text is its body.                   |
 | `image`         | `class`                                                    | Style `image` chooses a typed theme image. |
 | `button`        | `class`, `enabled={ bool }`, `onClick={ func() }`          | Leaf control.                              |
 | `list`          | `class`, `rows={ []UIRow }`, `onClick={ func(uint32) }`    | Host-owned rows.                           |
@@ -82,6 +82,24 @@ Dynamic attributes use Go expressions in `{ ... }`. `class` is one CSS
 identifier, not a list. Panels cannot be controls; labels do not click; controls are leaves except `tabs`/`tab` containers. Unknown attributes fail compilation.
 Non-whitespace text must be inside an open `label`, `button` or literal `checkbox` caption; text after a
 closed control or outside the root panel fails compilation.
+
+### Character reveal
+
+SDK 0.0.14 (API 0.0.12, wire 15) adds `reveal` to labels:
+
+```html
+<label reveal={props.VisibleCharacters}>{props.CompleteText}</label>
+```
+
+Keep the body bound to the complete line. `reveal` counts visible Unicode
+scalars, from 0 to 4096, using a `uint32` expression or a literal such as
+`reveal="12"`. Zero hides the text; omitting the attribute displays it all.
+Negative, fractional and oversized constants fail compilation. Dynamic counts
+are checked by the runtime. Revealing never changes the complete text's
+measurement, wrapping, alignment or shaping; a glyph cluster appears when its
+complete source range is visible. This avoids moving words while typing.
+`reveal` is not supported on buttons or other controls. It requires the matching
+new host and generated API; older SDKs do not provide `UI.Reveal`.
 
 ## Composition, loops, and conditions
 

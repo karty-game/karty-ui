@@ -21,6 +21,7 @@ type UIRow struct{ Text string }
 type Game struct{}
 type UI struct {
 	Text     map[uint32]string
+	Revealed map[uint32]uint32
 	Enabled  map[uint32]bool
 	Visible  map[uint32]bool
 	Lists    map[uint32][]UIRow
@@ -33,7 +34,7 @@ type UI struct {
 
 func (Game) ShowUI(_ string, project func(*UI), action func(UIAction)) *UI {
 	view := &UI{
-		Text: map[uint32]string{}, Enabled: map[uint32]bool{}, Visible: map[uint32]bool{},
+		Text: map[uint32]string{}, Revealed: map[uint32]uint32{}, Enabled: map[uint32]bool{}, Visible: map[uint32]bool{},
 		Lists: map[uint32][]UIRow{}, Children: map[uint32]*UI{},
 	}
 	view.Bind(project, action, nil)
@@ -91,3 +92,5 @@ func (view *UI) ChildSource(slot uint32, key any, source UISource) (*UI, bool) {
 	child.Source = source
 	return child, fresh
 }
+
+func (view *UI) Reveal(id UIElement, count uint32) { view.Revealed[uint32(id)] = count }

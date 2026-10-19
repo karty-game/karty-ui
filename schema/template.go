@@ -577,31 +577,42 @@ func validStyleValues(style Style) bool {
 	return validStyleEnums(style)
 }
 
-//nolint:cyclop,gocyclo // Every optional serialized enum is checked explicitly.
 func validStyleEnums(style Style) bool {
+	return validStyleLayoutEnums(style) && validStyleTransitionEnums(style) && validStyleContentEnums(style)
+}
+
+func validStyleLayoutEnums(style Style) bool {
 	directionValid := style.FlexDirection == FlexDirectionColumn || style.FlexDirection == FlexDirectionRow
 	alignmentValid := style.AlignItems >= AlignItemsStart && style.AlignItems <= AlignItemsStretch
 	justifyValid := style.JustifyContent >= JustifyContentStart && style.JustifyContent <= JustifyContentSpaceBetween
 	overflowValid := style.Overflow == OverflowVisible || style.Overflow == OverflowScroll
-	enterValid := style.TransitionEnter >= TransitionLeft && style.TransitionEnter <= TransitionBottom
-	exitValid := style.TransitionExit >= TransitionLeft && style.TransitionExit <= TransitionBottom
-	textAlignValid := style.TextAlign >= TextAlignStart && style.TextAlign <= TextAlignEnd
-	fontFamilyValid := style.FontFamily >= FontFamilyBody && style.FontFamily <= FontFamilyMono
-	easingValid := style.TransitionEasing >= TransitionEasingLinear && style.TransitionEasing <= TransitionEasingInOut
 	positionValid := style.Position == PositionOverlay
-	imageFitValid := style.ImageFit >= ImageFitStretch && style.ImageFit <= ImageFitCover
-	iconPositionValid := style.IconPosition >= IconPositionStart && style.IconPosition <= IconPositionEnd
 
 	return (style.Set&StyleFlexDirection == 0 || directionValid) &&
 		(style.Set&StyleAlignItems == 0 || alignmentValid) &&
 		(style.Set&StyleJustifyContent == 0 || justifyValid) &&
 		(style.Set&StyleOverflow == 0 || overflowValid) &&
-		(style.Set&StyleTransitionEnter == 0 || enterValid) &&
+		(style.Set2&Style2Position == 0 || positionValid)
+}
+
+func validStyleTransitionEnums(style Style) bool {
+	enterValid := style.TransitionEnter >= TransitionLeft && style.TransitionEnter <= TransitionBottom
+	exitValid := style.TransitionExit >= TransitionLeft && style.TransitionExit <= TransitionBottom
+	easingValid := style.TransitionEasing >= TransitionEasingLinear && style.TransitionEasing <= TransitionEasingInOut
+
+	return (style.Set&StyleTransitionEnter == 0 || enterValid) &&
 		(style.Set&StyleTransitionExit == 0 || exitValid) &&
-		(style.Set&StyleTextAlign == 0 || textAlignValid) &&
+		(style.Set2&Style2TransitionEasing == 0 || easingValid)
+}
+
+func validStyleContentEnums(style Style) bool {
+	textAlignValid := style.TextAlign >= TextAlignStart && style.TextAlign <= TextAlignEnd
+	fontFamilyValid := style.FontFamily >= FontFamilyBody && style.FontFamily <= FontFamilyMono
+	imageFitValid := style.ImageFit >= ImageFitStretch && style.ImageFit <= ImageFitCover
+	iconPositionValid := style.IconPosition >= IconPositionStart && style.IconPosition <= IconPositionEnd
+
+	return (style.Set&StyleTextAlign == 0 || textAlignValid) &&
 		(style.Set&StyleFontFamily == 0 || fontFamilyValid) &&
-		(style.Set2&Style2TransitionEasing == 0 || easingValid) &&
-		(style.Set2&Style2Position == 0 || positionValid) &&
 		(style.Set2&Style2ImageFit == 0 || imageFitValid) &&
 		(style.Set2&Style2IconPosition == 0 || iconPositionValid)
 }

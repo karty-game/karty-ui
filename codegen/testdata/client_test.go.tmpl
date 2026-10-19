@@ -48,3 +48,18 @@ func TestGeneratedWidgetBindings(t *testing.T) {
   props.Checked,props.Name,props.Volume,props.Selected=true,"name",42,1
  }
 }
+
+func TestGeneratedRevealKeepsLayoutTextAndCountIndependent(t *testing.T) {
+ props := &RevealProps{Text:"Café 東京",Count:2}
+ for _,view := range []*engine.UI{Reveal(props),RevealParent(props).Children[1]} {
+  if _,present:=view.Revealed[2];!present {t.Fatal("zero reveal literal was omitted")}
+  if view.Text[1]!=props.Text || view.Revealed[1]!=2 || view.Revealed[2]!=0 {t.Fatal("initial full text or reveal count missing",view)}
+  props.Count=0
+  view.Invalidate()
+  if view.Text[1]!=props.Text || view.Revealed[1]!=0 {t.Fatal("hiding characters changed layout text",view)}
+  props.Text,props.Count="東京",2
+  view.Invalidate()
+  if view.Text[1]!="東京" || view.Revealed[1]!=2 {t.Fatal("new line lost text or reveal update",view)}
+  props.Text,props.Count="Café 東京",2
+ }
+}

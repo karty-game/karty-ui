@@ -29,6 +29,7 @@ type Parameter struct{ Name, Type string }
 type Binding struct {
 	ID                                                  uint32
 	Text, DefaultText, Enabled, Visible, Rows, Click    string
+	Reveal                                              string
 	Child, Props, Key, Loop, Source                     string
 	Value, ValueMethod, Change, ChangeType, ChangeField string
 }

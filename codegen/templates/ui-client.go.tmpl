@@ -24,7 +24,9 @@ func {{.Name}}({{range .Parameters}}{{.Name}} {{.Type}},{{end}}) *_kartyEngine.U
  {{if .Value}}_kartyTarget.{{.ValueMethod}}({{.ID}},{{.Value}},{{.Enabled}})
  {{else if .Text}}_kartyTarget.Set({{.ID}}, {{.Text}}, {{.Enabled}})
  {{else if and (not .Rows) (ne .Enabled "true")}}_kartyTarget.Set({{.ID}}, {{printf "%q" .DefaultText}}, {{.Enabled}})
- {{end}}{{end}}
+ {{end}}
+ {{if .Reveal}}_kartyTarget.Reveal({{.ID}},{{.Reveal}}){{end}}
+ {{end}}
  }, func(_kartyAction _kartyEngine.UIAction) {
   {{if .Back}}if _kartyAction.Element == _kartyEngine.UIElement({{.BackElement}}) { var _kartyCallback func() = {{.Back}}; if _kartyCallback != nil { _kartyCallback() }; return }
   {{end}}

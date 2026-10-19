@@ -405,8 +405,8 @@
       "attributes": ["class", "modal", "onBack", "tooltip"]
     },
     "label": {
-      "detail": "Text label: one literal or one Go expression, e.g. {props.Title}.",
-      "attributes": ["class", "tooltip"]
+      "detail": "Text label: complete text with optional reveal={uint32} character count (SDK 0.0.14).",
+      "attributes": ["class", "reveal", "tooltip"]
     },
     "image": {
       "detail": "Image control; choose a typed theme image with the image style.",
@@ -462,6 +462,11 @@
     "tooltip": {
       "detail": "Literal help text, up to 4096 UTF-8 bytes.",
       "insert": "tooltip=\"${1:Help text}\"",
+      "values": []
+    },
+    "reveal": {
+      "detail": "Label only: visible Unicode scalar count (uint32, 0..4096). Full text retains final wrapping and shaping. Requires SDK 0.0.14.",
+      "insert": "reveal={${1:props.VisibleCharacters}}",
       "values": []
     },
     "enabled": {

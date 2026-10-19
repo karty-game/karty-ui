@@ -178,3 +178,10 @@ test("closing-block lookalikes inside multiline Go strings and comments remain s
   assert.deepEqual(labels('<script setup lang="go">\n/*\n</scr|'), []);
   assert.deepEqual(labels("<style>\n/*\n</sty|\n*/\n</style>"), []);
 });
+
+test("label reveal completion is typed and confined to labels", () => {
+  assert.ok(labels(markup("<panel><label re|>Complete text</label></panel>")).includes("reveal"));
+  assert.ok(!labels(markup("<panel><button re|>Continue</button></panel>")).includes("reveal"));
+  const source = input(markup("<panel><label rev|eal={props.Count}>Complete text</label></panel>"));
+  assert.match(hoverAt(source.model, source.offset).detail, /Unicode scalar.*uint32.*SDK 0\.0\.14/);
+});

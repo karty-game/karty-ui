@@ -41,6 +41,15 @@ func TestGeneratedAdaptersCompileAndUpdateProps(t *testing.T) {
 	root := t.TempDir()
 	for name, source := range map[string]string{
 		"static.kui": `<template><panel><label>Ready</label></panel></template>`,
+		"reveal.kui": `<template><panel><label reveal={props.Count}>{props.Text}</label><label reveal="0">Reserved</label></panel></template>
+<script setup lang="go">
+type RevealProps struct { Text string; Count uint32 }
+func setup(props *RevealProps) {}
+</script>`,
+		"reveal-parent.kui": `<template><panel><Reveal props={props}/></panel></template>
+<script setup lang="go">
+func setup(props *RevealProps) {}
+</script>`,
 		"widgets.kui": `<template>
 <panel modal="true"><checkbox checked={props.Checked} onChange={props.Check}>Audio</checkbox><input value={props.Name} onChange={props.Input}/><slider value={props.Volume} onChange={props.Slide}/><combo rows={[]engine.UIRow{{Text:"Choice"}}} selected={props.Selected} onChange={props.Select}/><tabs selected={uint32(0)} onChange={props.Select}><tab title="General"><label>Settings</label></tab></tabs></panel>
 </template>
@@ -101,6 +110,8 @@ func setup(value string) {}
 
 	components, err := uicompiler.Load(root, []uicompiler.Source{
 		{Name: "static", Source: "static.kui"},
+		{Name: "reveal", Source: "reveal.kui"},
+		{Name: "reveal-parent", Source: "reveal-parent.kui"},
 		{Name: "parent", Source: "parent.kui"},
 		{Name: "child", Source: "child.kui"},
 		{Name: "plain", Source: "plain.kui"},

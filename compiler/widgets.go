@@ -33,6 +33,8 @@ func initializeWidget(element *ui.Element) {
 func widgetAttribute(element *ui.Element, binding *Binding, attr xml.Attr, expressions map[string]string) (bool, error) {
 	expression, dynamic := expressions[attr.Value]
 	switch attr.Name.Local {
+	case "reveal":
+		return true, revealAttribute(*element, binding, attr, expressions)
 	case "tooltip", "placeholder", "title", "min", "max":
 		if dynamic {
 			return true, fmt.Errorf("%s must be literal: %w", attr.Name.Local, ui.ErrTemplate)
