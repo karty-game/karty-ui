@@ -94,3 +94,11 @@ func (view *UI) ChildSource(slot uint32, key any, source UISource) (*UI, bool) {
 }
 
 func (view *UI) Reveal(id UIElement, count uint32) { view.Revealed[uint32(id)] = count }
+
+// Version 3 models the renamed SDK setters independently of rendering.
+func (view *UI) SetText(id uint32, text string, enabled bool)      { view.Set(id, text, enabled) }
+func (view *UI) SetRows(id uint32, rows []UIRow)                   { view.Rows(id, rows) }
+func (view *UI) SetChecked(id uint32, value, enabled bool)         { view.Checked(id, value, enabled) }
+func (view *UI) SetValue(id uint32, value int32, enabled bool)     { view.Value(id, value, enabled) }
+func (view *UI) SetSelected(id uint32, value uint32, enabled bool) { view.Selected(id, value, enabled) }
+func (view *UI) SetRevealCount(id UIElement, count uint32)         { view.Reveal(id, count) }

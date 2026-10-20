@@ -66,3 +66,8 @@ schema. Update that catalog when changing styles. Node tests cover incomplete
 buffers, contexts, edit ranges, local navigation, cancellation and cache
 invalidation; they do not constitute a manual VS Code extension-host session.
 See [editor features v1](editor-features-v1.md) for current limits and next steps.
+
+SDK project adapter contract 3 uses `SetText`, `SetRows`, `SetChecked`,
+`SetValue`, `SetSelected` and `SetRevealCount`. The CLI passes the SDK
+`project_codegen` value to `UIClientFilesForVersion` and
+`UIPackageFilesForVersion`; unsupported versions fail before generation.

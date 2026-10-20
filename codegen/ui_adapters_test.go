@@ -153,6 +153,12 @@ func setup(value string) {}
 		generate               func([]uicompiler.Component, string) (map[string][]byte, error)
 	}{
 		{"client", "main", UIClientFiles}, {"ui", "ui", UIPackageFiles},
+		{"client-v3", "main", func(views []uicompiler.Component, module string) (map[string][]byte, error) {
+			return UIClientFilesForVersion(views, module, 3)
+		}},
+		{"ui-v3", "ui", func(views []uicompiler.Component, module string) (map[string][]byte, error) {
+			return UIPackageFilesForVersion(views, module, 3)
+		}},
 	} {
 		files, err := adapter.generate(components, "example.com/adaptertest")
 		if err != nil {
@@ -171,7 +177,7 @@ func setup(value string) {}
 		writeAdapterTestFile(t, root, filepath.Join(adapter.directory, "adapter_test.go"), output.Bytes())
 	}
 
-	command := exec.CommandContext(t.Context(), "go", "test", "./client", "./ui")
+	command := exec.CommandContext(t.Context(), "go", "test", "./client", "./ui", "./client-v3", "./ui-v3")
 	command.Dir = root
 
 	command.Env = append(os.Environ(), "GOWORK=off", "GOTOOLCHAIN=local")

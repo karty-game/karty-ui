@@ -10,18 +10,34 @@ import (
 	definition "github.com/karty-game/karty-ui/schema"
 )
 
+const errProjectGenerator staticError = "unsupported SDK project generator"
+
 // UIClientFiles emits same-package client functions for model-bound screens.
 // Callers stage these next to copies of authored Go; never write them into src.
 func UIClientFiles(components []uicompiler.Component, module string) (map[string][]byte, error) {
-	return uiClientFiles(components, module, "main")
+	return uiClientFiles(components, module, "main", 2)
 }
 
 // UIPackageFiles emits the persistent, importable UI package.
 func UIPackageFiles(components []uicompiler.Component, module string) (map[string][]byte, error) {
-	return uiClientFiles(components, module, "ui")
+	return uiClientFiles(components, module, "ui", 2)
 }
 
-func uiClientFiles(components []uicompiler.Component, module, packageName string) (map[string][]byte, error) {
+// UIClientFilesForVersion selects the SDK's project_codegen contract.
+func UIClientFilesForVersion(components []uicompiler.Component, module string, version int) (map[string][]byte, error) {
+	return uiClientFiles(components, module, "main", version)
+}
+
+// UIPackageFilesForVersion selects the SDK's project_codegen contract.
+func UIPackageFilesForVersion(components []uicompiler.Component, module string, version int) (map[string][]byte, error) {
+	return uiClientFiles(components, module, "ui", version)
+}
+
+func uiClientFiles(components []uicompiler.Component, module, packageName string, version int) (map[string][]byte, error) {
+	if version < 1 || version > 3 {
+		return nil, fmt.Errorf("%w: %d", errProjectGenerator, version)
+	}
+
 	result := map[string][]byte{}
 	templates := map[bool]*template.Template{}
 
@@ -51,7 +67,8 @@ func uiClientFiles(components []uicompiler.Component, module, packageName string
 			Engine      string
 			Package     string
 			BackElement uint32
-		}{component, module + "/.karty/engine", packageName, definition.BackElementID}
+			ReviewedSDK bool
+		}{component, module + "/.karty/engine", packageName, definition.BackElementID, version >= 3}
 		if err := parsed.Execute(&output, data); err != nil {
 			return nil, err
 		}
